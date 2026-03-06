@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAVANNA INVADERS</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    width:100%; height:100%;
+    background:#000;
+    font-family:'Press Start 2P', monospace;
+    overflow:hidden;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  #hud {
+    width:min(700px,100vw);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:6px 12px 4px;
+    background:#0a0000;
+    border:2px solid #c83000;
+    border-bottom:none;
+    box-sizing:border-box;
+  }
+  #hud span { color:#ff6010; font-size:clamp(5px,1.4vw,9px); }
+  #hud b { color:#ff9040; }
+  #gameWrapper {
+    position:relative;
+    width:min(700px,100vw);
+    aspect-ratio:700/560;
+    border:2px solid #c83000;
+    box-shadow:0 0 40px #ff400044, inset 0 0 60px #1a000088;
+    overflow:hidden;
+    background:#000;
+  }
+  canvas {
+    display:block; width:100%; height:100%;
+    image-rendering:pixelated; image-rendering:crisp-edges;
+  }
+  #overlay {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.92);
+  }
+  #overlay h1 {
+    color:#ff4010;
+    font-size:clamp(10px,3.5vw,22px);
+    text-shadow:0 0 20px #ff400088, 3px 3px #6a1000;
+    letter-spacing:2px; text-align:center; line-height:2;
+    margin-bottom:8px;
+  }
+  #overlay .sub {
+    color:#ff8030; font-size:clamp(5px,1.2vw,8px);
+    text-align:center; line-height:2.4; margin-bottom:16px;
+  }
+  #overlay .btn {
+    margin-top:10px; padding:10px 22px;
+    background:#c83000; color:#fff8ee;
+    font-family:'Press Start 2P',monospace;
+    font-size:clamp(7px,1.5vw,10px);
+    border:none; cursor:pointer;
+    box-shadow:4px 4px #601000;
+    transition:transform 0.1s;
+  }
+  #overlay .btn:hover { background:#ff4010; }
+  #overlay .btn:active { transform:translate(2px,2px); box-shadow:2px 2px #601000; }
+  #overlay .lives { color:#ff6010; font-size:clamp(5px,1.2vw,8px); margin-top:12px; }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <span>SCORE: <b id="scoreVal">0</b></span>
+  <span>SAVANNA INVADERS</span>
+  <span>HI: <b id="hiVal">0</b> &nbsp; LIVES: <b id="livesVal">3</b></span>
+</div>
+<div id="gameWrapper">
+  <canvas id="gc" width="700" height="560"></canvas>
+  <div id="overlay">
+    <h1>SAVANNA<br>INVADERS</h1>
+    <div class="sub">
+      MUTANT ANIMALS ATTACK!<br>
+      ← → MOVE &nbsp; SPACE = SHOOT<br>
+      MOBILE: TAP TO SHOOT
+    </div>
+    <button class="btn" onclick="startGame()">▶ START</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gc');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const W = 700, H = 560;
+const P = 3; // pixel unit
+
+// ── PALETTE ──────────────────────────────────────────
+const COL = {
+  bg:       '#000000',
+  scanline: '#ff200008',
+  gridLine: '#ff300006',
+  orange1:  '#ff4010',
+  orange2:  '#ff6020',
+  orange3:  '#ff8030',
+  amber:    '#ffaa40',
+  dim:      '#661000',
+  dimmer:   '#330800',
+  green:    '#40ff80',   // player bullet
+  red:      '#ff2000',   // enemy bullet
+  shield:   '#ff7020',
+  shieldDim:'#883010',
+};
+
+// ── STATE ─────────────────────────────────────────────
+let state = 'idle';
+let score = 0, hiScore = 0, lives = 3, wave = 1;
+let player, bullets, enemyBullets, invaders, shields, particles;
+let invaderDir = 1, invaderDropTimer = 0, invaderMoveTimer = 0;
+let invaderMoveInterval = 40;
+let ufoBoss = null, ufoTimer = 0;
+let frame = 0;
+
+// ── PLAYER ────────────────────────────────────────────
+function initPlayer() {
+  player = { x: W/2 - 16, y: H - 52, w: 32, h: 20, cooldown: 0, dead: false, deathTimer: 0 };
+}
+
+// ── INVADER GRID ──────────────────────────────────────
+const ROWS = 4, COLS = 10;
+const TYPES = ['elephant','rhino','hippo','croc']; // row types top→bottom
+const ROW_SCORES = [30, 20, 15, 10];
+
+function initInvaders() {
+  invaders = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      invaders.push({
+        row: r, col: c,
+        x: 60 + c * 56,
+        y: 60 + r * 46,
+        type: TYPES[r],
+        alive: true,
+        animFrame: 0,
+        animTimer: 0,
+        score: ROW_SCORES[r],
+      });
+    }
+  }
+}
+
+// ── SHIELDS ───────────────────────────────────────────
+function initShields() {
+  shields = [];
+  const positions = [90, 230, 370, 510];
+  positions.forEach(sx => {
+    // each shield = grid of 8x5 cells
+    const cells = [];
+    const shw = 8, shh = 5;
+    for (let r = 0; r < shh; r++) {
+      for (let c = 0; c < shw; c++) {
+        // notch bottom-center
+        if (r >= 3 && c >= 3 && c <= 4) continue;
+        cells.push({ r, c, hp: 3 });
+      }
+    }
+    shields.push({ x: sx, y: H - 110, cells, cw: 10, ch: 8 });
+  });
+}
+
+function initGame() {
+  score = 0; lives = 3; wave = 1;
+  bullets = []; enemyBullets = []; particles = [];
+  invaderDir = 1; invaderDropTimer = 0; invaderMoveTimer = 0;
+  invaderMoveInterval = 42; ufoBoss = null; ufoTimer = 0; frame = 0;
+  initPlayer(); initInvaders(); initShields();
+  document.getElementById('livesVal').textContent = lives;
+  document.getElementById('scoreVal').textContent = 0;
+}
+
+function nextWave() {
+  wave++;
+  bullets = []; enemyBullets = []; particles = [];
+  invaderDir = 1; invaderDropTimer = 0; invaderMoveTimer = 0;
+  invaderMoveInterval = Math.max(10, 42 - wave * 4);
+  ufoBoss = null; ufoTimer = 0;
+  initInvaders(); initShields();
+}
+
+// ── PIXEL DRAWING HELPERS ────────────────────────────
+function px(x, y, w, h, col) {
+  ctx.fillStyle = col;
+  ctx.fillRect(Math.floor(x), Math.floor(y), w, h);
+}
+
+// ── DRAW INVADERS ─────────────────────────────────────
+function drawInvader(inv) {
+  const x = Math.floor(inv.x), y = Math.floor(inv.y);
+  const f = inv.animFrame;
+  const p = P;
+
+  if (inv.type === 'elephant') {
+    // Mutant elephant — big body, trunk, tusks, red eyes
+    const c = f === 0 ? COL.orange2 : COL.orange3;
+    // body
+    px(x+p, y+p*2, p*8, p*6, c);
+    // head
+    px(x+p*7, y, p*5, p*5, c);
+    // ear flap (animates)
+    px(x, y+p*2, p*3, f===0?p*4:p*3, COL.orange1);
+    // trunk (wiggles)
+    px(x+p*10, y+p*3, p*2, p*3, c);
+    px(x+p*(f===0?11:10), y+p*5, p*2, p*2, c);
+    // tusk
+    px(x+p*9, y+p*4, p*3, p, COL.amber);
+    // eyes (glowing red)
+    px(x+p*9, y+p, p, p, '#ff0000');
+    px(x+p*11, y+p, p, p, '#ff0000');
+    // legs
+    px(x+p*2, y+p*7, p*2, p*3, COL.dim);
+    px(x+p*5, y+p*7, p*2, p*3, COL.dim);
+    // mutation: spikes on back
+    px(x+p*2, y+p, p, p*2, COL.orange1);
+    px(x+p*4, y, p, p*2, COL.orange1);
+    px(x+p*6, y+p, p, p*2, COL.orange1);
+
+  } else if (inv.type === 'rhino') {
+    // Mutant rhino — armoured, dual horns
+    const c = f === 0 ? COL.orange1 : COL.orange2;
+    // body
+    px(x+p, y+p*3, p*10, p*5, c);
+    // head
+    px(x+p*8, y+p*2, p*4, p*4, c);
+    // armour plates
+    px(x+p*2, y+p*3, p*3, p*2, COL.dim);
+    px(x+p*6, y+p*3, p*3, p*2, COL.dim);
+    // horns
+    px(x+p*10, y, p*2, p*3, COL.amber);
+    px(x+p*11, y-p, p, p*2, COL.amber);
+    // eye
+    px(x+p*10, y+p*2, p, p, '#ff0000');
+    // legs
+    px(x+p*2, y+p*7, p*2, p*2, COL.dimmer);
+    px(x+p*5, y+p*7, p*2, p*2, COL.dimmer);
+    px(x+p*8, y+p*7, p*2, p*2, COL.dimmer);
+    // tail spines
+    px(x, y+p*3, p, p*2, f===0?COL.orange3:COL.orange1);
+    px(x, y+p*5, p, p*2, f===0?COL.orange1:COL.orange3);
+
+  } else if (inv.type === 'hippo') {
+    // Mutant hippo — massive jaws, small eyes, drips
+    const c = f === 0 ? COL.orange3 : COL.amber;
+    // body
+    px(x, y+p*3, p*12, p*5, c);
+    // head
+    px(x+p*2, y, p*8, p*5, c);
+    // giant jaw (open/close)
+    if (f === 0) {
+      px(x+p*2, y+p*3, p*8, p*2, COL.dim);
+      px(x+p*3, y+p*4, p*6, p, '#cc0000');  // inner mouth red
+    }
+    // eyes
+    px(x+p*3, y+p, p, p, '#ff0000');
+    px(x+p*7, y+p, p, p, '#ff0000');
+    // teeth
+    px(x+p*3, y+p*3, p, p*2, COL.amber);
+    px(x+p*5, y+p*3, p, p*2, COL.amber);
+    px(x+p*7, y+p*3, p, p*2, COL.amber);
+    // legs
+    px(x+p*2, y+p*7, p*2, p*2, COL.dim);
+    px(x+p*8, y+p*7, p*2, p*2, COL.dim);
+    // mutation drip
+    px(x+p*4, y+p*7, p, p*2, f===0?'#ff6000':'#ff2000');
+    px(x+p*7, y+p*8, p, p*2, f===1?'#ff6000':'#ff2000');
+
+  } else if (inv.type === 'croc') {
+    // Mutant croc — long snout, spiny back, small
+    const c = f === 0 ? COL.orange1 : COL.orange2;
+    // body
+    px(x+p*2, y+p*3, p*10, p*3, c);
+    // snout
+    px(x+p*9, y+p*2, p*5, p*3, c);
+    px(x+p*13, y+p*2, p*2, p*2, COL.amber); // teeth
+    // tail
+    px(x, y+p*4, p*3, p*2, c);
+    px(x-p, y+p*5, p*2, p, c);
+    // spines (animate)
+    for (let i = 0; i < 4; i++) {
+      px(x+p*(3+i*2), y+p*(f===0?2:1), p, p*2, COL.orange3);
+    }
+    // eye
+    px(x+p*11, y+p*2, p, p, '#ff0000');
+    // legs
+    px(x+p*3, y+p*5, p*2, p*2, COL.dim);
+    px(x+p*7, y+p*5, p*2, p*2, COL.dim);
+  }
+}
+
+// ── DRAW UFO ──────────────────────────────────────────
+function drawUFO(ufo) {
+  const x = Math.floor(ufo.x), y = Math.floor(ufo.y);
+  const p = P, f = (frame % 20 < 10) ? 0 : 1;
+  // Mutant flying eagle boss
+  px(x+p*3, y+p*2, p*8, p*3, COL.amber);
+  px(x+p, y+p*3, p*12, p*2, COL.orange2);
+  px(x+p*5, y, p*4, p*3, COL.orange3);
+  // wings flap
+  px(x, y+p*(f===0?2:3), p*4, p*2, COL.orange1);
+  px(x+p*10, y+p*(f===0?2:3), p*4, p*2, COL.orange1);
+  // eyes
+  px(x+p*5, y+p, p, p, '#ff0000');
+  px(x+p*8, y+p, p, p, '#ff0000');
+  // talons
+  px(x+p*4, y+p*4, p, p*2, COL.amber);
+  px(x+p*9, y+p*4, p, p*2, COL.amber);
+  // glow under
+  ctx.globalAlpha = 0.3 + Math.sin(frame*0.2)*0.15;
+  px(x+p*2, y+p*4, p*10, p*2, COL.orange2);
+  ctx.globalAlpha = 1;
+}
+
+// ── DRAW PLAYER ───────────────────────────────────────
+function drawPlayer() {
+  if (player.dead) {
+    // death flash
+    if (Math.floor(player.deathTimer / 4) % 2 === 0) return;
+  }
+  const x = Math.floor(player.x), y = Math.floor(player.y);
+  const p = P;
+  // Warrior/soldier silhouette
+  // base/tank tread
+  px(x, y+p*5, p*11, p*3, COL.dim);
+  px(x+p, y+p*4, p*9, p*2, COL.orange1);
+  // turret body
+  px(x+p*3, y+p*2, p*5, p*3, COL.orange2);
+  // barrel
+  px(x+p*5, y, p*2, p*3, COL.orange3);
+  // head/cabin
+  px(x+p*2, y+p*2, p*7, p*2, COL.orange2);
+  // window
+  px(x+p*4, y+p*2, p*3, p, '#ffcc60');
+  // wheels
+  px(x+p, y+p*6, p*2, p*2, COL.dimmer);
+  px(x+p*4, y+p*6, p*2, p*2, COL.dimmer);
+  px(x+p*7, y+p*6, p*2, p*2, COL.dimmer);
+}
+
+// ── DRAW SHIELD ───────────────────────────────────────
+function drawShield(sh) {
+  sh.cells.forEach(cell => {
+    const cx = sh.x + cell.c * sh.cw;
+    const cy = sh.y + cell.r * sh.ch;
+    const col = cell.hp === 3 ? COL.shield : cell.hp === 2 ? COL.shieldDim : '#441808';
+    px(cx, cy, sh.cw - 1, sh.ch - 1, col);
+  });
+}
+
+// ── PARTICLES ────────────────────────────────────────
+function spawnExplosion(x, y, col1, col2, count=14) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random()-0.5)*7,
+      vy: (Math.random()-0.5)*7,
+      life: 28, maxLife: 28,
+      color: Math.random()<0.5 ? col1 : col2,
+      size: Math.random()<0.3 ? 4 : 2,
+    });
+  }
+}
+
+// ── ENEMY SHOOTING ───────────────────────────────────
+let enemyShootTimer = 0;
+const BASE_SHOOT_INTERVAL = 70;
+
+function enemyShoot() {
+  const alive = invaders.filter(i => i.alive);
+  if (!alive.length) return;
+  // pick random living invader (weighted toward bottom rows)
+  const bottom = {};
+  alive.forEach(i => {
+    if (!bottom[i.col] || i.row > bottom[i.col].row) bottom[i.col] = i;
+  });
+  const shooters = Object.values(bottom);
+  const shooter = shooters[Math.floor(Math.random()*shooters.length)];
+  enemyBullets.push({
+    x: shooter.x + 18,
+    y: shooter.y + 20,
+    vy: 3.5 + wave * 0.4,
+    type: Math.random() < 0.3 ? 'zigzag' : 'straight',
+    age: 0,
+  });
+}
+
+// ── SHOOTING ──────────────────────────────────────────
+function playerShoot() {
+  if (player.dead || player.cooldown > 0) return;
+  if (bullets.filter(b=>b.player).length >= 2) return;
+  bullets.push({ x: player.x + 15, y: player.y, vy: -10, player: true });
+  player.cooldown = 18;
+}
+
+// ── COLLISION ────────────────────────────────────────
+function rectHit(ax,ay,aw,ah, bx,by,bw,bh) {
+  return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
+}
+
+function checkBulletShield(bx, by, bw, bh) {
+  for (const sh of shields) {
+    for (const cell of sh.cells) {
+      const cx = sh.x + cell.c * sh.cw, cy = sh.y + cell.r * sh.ch;
+      if (rectHit(bx,by,bw,bh, cx,cy,sh.cw-1,sh.ch-1)) {
+        cell.hp--;
+        if (cell.hp <= 0) sh.cells.splice(sh.cells.indexOf(cell), 1);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────
+function startGame() {
+  document.getElementById('overlay').style.display = 'none';
+  initGame();
+  state = 'running';
+}
+
+function continueWave() {
+  document.getElementById('overlay').style.display = 'none';
+  nextWave();
+  bullets = []; enemyBullets = []; particles = [];
+  initPlayer();
+  state = 'running';
+  document.getElementById('livesVal').textContent = lives;
+}
+
+function gameOver(win) {
+  state = win ? 'win' : 'dead';
+  if (score > hiScore) hiScore = score;
+  document.getElementById('hiVal').textContent = hiScore;
+  setTimeout(() => {
+    const ov = document.getElementById('overlay');
+    ov.style.display = 'flex';
+    ov.innerHTML = win
+      ? `<h1>WAVE ${wave}<br>CLEARED!</h1>
+         <div class="sub">Score: ${score}</div>
+         <button class="btn" onclick="continueWave()">▶ WAVE ${wave+1}</button>`
+      : `<h1>OVERRUN!</h1>
+         <div class="sub">The savanna has fallen...<br>Score: ${score} &nbsp; Wave: ${wave}</div>
+         ${score>=hiScore&&score>0?'<div class="sub" style="color:#ffaa40">✦ NEW HI-SCORE ✦</div>':''}
+         <button class="btn" onclick="startGame()">▶ TRY AGAIN</button>`;
+  }, 900);
+}
+
+function loop() {
+  requestAnimationFrame(loop);
+  frame++;
+  ctx.fillStyle = COL.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Scanlines + gradient atmosphere
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#200800');
+  grad.addColorStop(0.5, '#0a0000');
+  grad.addColorStop(1, '#1a0400');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Scanlines
+  ctx.fillStyle = COL.scanline;
+  for (let sy = 0; sy < H; sy += 3) ctx.fillRect(0, sy, W, 1);
+
+  if (state === 'running') {
+    // ── MOVE PLAYER ──
+    if (!player.dead) {
+      if (keys['ArrowLeft']  || keys['KeyA']) player.x = Math.max(0, player.x - 4);
+      if (keys['ArrowRight'] || keys['KeyD']) player.x = Math.min(W - 36, player.x + 4);
+      if (player.cooldown > 0) player.cooldown--;
+    } else {
+      player.deathTimer++;
+      if (player.deathTimer > 90) {
+        lives--;
+        document.getElementById('livesVal').textContent = lives;
+        if (lives <= 0) { gameOver(false); return; }
+        player.dead = false; player.deathTimer = 0;
+        enemyBullets = [];
+      }
+    }
+
+    // ── MOVE INVADERS ──
+    invaderMoveTimer++;
+    const aliveCount = invaders.filter(i=>i.alive).length;
+    const dynamicInterval = Math.max(5, invaderMoveInterval - Math.floor((ROWS*COLS - aliveCount) * 0.6));
+    if (invaderMoveTimer >= dynamicInterval) {
+      invaderMoveTimer = 0;
+      let edgeHit = false;
+      invaders.forEach(inv => {
+        if (!inv.alive) return;
+        inv.x += invaderDir * 10;
+        if (inv.x > W - 55 || inv.x < 10) edgeHit = true;
+        inv.animTimer++;
+        if (inv.animTimer > 8) { inv.animFrame = (inv.animFrame+1)%2; inv.animTimer=0; }
+      });
+      if (edgeHit) {
+        invaderDir *= -1;
+        invaders.forEach(inv => { if (inv.alive) inv.y += 16; });
+        invaderDropTimer++;
+      }
+    }
+
+    // Check invaders reached bottom
+    invaders.forEach(inv => {
+      if (inv.alive && inv.y + 36 >= player.y) { gameOver(false); }
+    });
+
+    // ── UFO ──
+    ufoTimer++;
+    if (!ufoBoss && ufoTimer > 600 + Math.random()*400) {
+      ufoBoss = { x: -60, y: 28, vx: 2 + wave*0.3, score: 150 };
+      ufoTimer = 0;
+    }
+    if (ufoBoss) {
+      ufoBoss.x += ufoBoss.vx;
+      if (ufoBoss.x > W + 60) ufoBoss = null;
+    }
+
+    // ── ENEMY SHOOT ──
+    enemyShootTimer++;
+    const shootInterval = Math.max(20, BASE_SHOOT_INTERVAL - wave * 6 - Math.floor((ROWS*COLS-aliveCount)*0.5));
+    if (enemyShootTimer >= shootInterval) {
+      enemyShootTimer = 0;
+      enemyShoot();
+      if (aliveCount < 10) enemyShoot(); // more bullets when few left
+    }
+
+    // ── MOVE BULLETS ──
+    bullets = bullets.filter(b => {
+      b.x += b.vx || 0;
+      b.y += b.vy;
+      return b.y > -10 && b.y < H+10;
+    });
+    enemyBullets = enemyBullets.filter(b => {
+      b.age++;
+      if (b.type === 'zigzag') b.x += Math.sin(b.age * 0.3) * 2.5;
+      b.y += b.vy;
+      return b.y < H + 10;
+    });
+
+    // ── BULLET vs SHIELD ──
+    bullets = bullets.filter(b => {
+      if (!b.player) return true;
+      if (checkBulletShield(b.x-2, b.y-4, 4, 8)) {
+        spawnExplosion(b.x, b.y, COL.shield, COL.orange1, 6);
+        return false;
+      }
+      return true;
+    });
+    enemyBullets = enemyBullets.filter(b => {
+      if (checkBulletShield(b.x-2, b.y-4, 4, 8)) {
+        spawnExplosion(b.x, b.y, COL.shieldDim, COL.orange1, 4);
+        return false;
+      }
+      return true;
+    });
+
+    // ── BULLET vs INVADER ──
+    bullets = bullets.filter(b => {
+      if (!b.player) return true;
+      for (const inv of invaders) {
+        if (!inv.alive) continue;
+        if (rectHit(b.x-3, b.y-6, 6, 10, inv.x, inv.y, 46, 32)) {
+          inv.alive = false;
+          score += inv.score;
+          document.getElementById('scoreVal').textContent = score;
+          spawnExplosion(inv.x+22, inv.y+16, COL.orange2, COL.amber, 18);
+          if (!invaders.some(i=>i.alive)) { setTimeout(()=>gameOver(true), 1200); }
+          return false;
+        }
+      }
+      // vs UFO
+      if (ufoBoss && rectHit(b.x-3,b.y-6,6,10, ufoBoss.x,ufoBoss.y,54,24)) {
+        score += ufoBoss.score;
+        document.getElementById('scoreVal').textContent = score;
+        spawnExplosion(ufoBoss.x+27, ufoBoss.y+12, COL.amber, '#ffffff', 24);
+        ufoBoss = null;
+        return false;
+      }
+      return true;
+    });
+
+    // ── ENEMY BULLET vs PLAYER ──
+    if (!player.dead) {
+      enemyBullets = enemyBullets.filter(b => {
+        if (rectHit(b.x-3, b.y-6, 6, 12, player.x, player.y, 36, 28)) {
+          player.dead = true; player.deathTimer = 0;
+          spawnExplosion(player.x+18, player.y+14, COL.orange1, COL.amber, 28);
+          return false;
+        }
+        return true;
+      });
+    }
+
+    // ── PARTICLES ──
+    particles.forEach(pt => {
+      pt.x += pt.vx; pt.y += pt.vy;
+      pt.vx *= 0.93; pt.vy *= 0.93;
+      pt.life--;
+      ctx.globalAlpha = pt.life / pt.maxLife;
+      ctx.fillStyle = pt.color;
+      ctx.fillRect(Math.floor(pt.x), Math.floor(pt.y), pt.size, pt.size);
+    });
+    ctx.globalAlpha = 1;
+    particles = particles.filter(p => p.life > 0);
+  }
+
+  // ── AERIAL SAVANNA LANDSCAPE ──────────────────────────
+  // Sits between shields (H-110) and player (H-52), roughly H-135 to H-52
+  const LAND_Y = H - 138;
+  const LAND_H = 86;
+  const scroll = (frame * 0.8) | 0;
+
+  // Base ground — dry savanna earth, aerial top-down view
+  ctx.fillStyle = '#2a1400';
+  ctx.fillRect(0, LAND_Y, W, LAND_H);
+
+  // Earthy terrain patches — scrolling
+  const terrainColors = ['#3a1c06','#4a2408','#2e1604','#382008'];
+  for (let i = 0; i < 18; i++) {
+    const tx = ((i * 97 - scroll * 0.6) % (W + 60)) - 30;
+    const ty = LAND_Y + 4 + (i * 37) % (LAND_H - 12);
+    ctx.fillStyle = terrainColors[i % terrainColors.length];
+    ctx.fillRect(Math.floor(tx), Math.floor(ty), 28 + (i*13)%22, 6 + (i*7)%8);
+  }
+
+  // Dry grass / scrub patches (yellow-brown top-down blobs)
+  for (let i = 0; i < 22; i++) {
+    const gx = ((i * 71 + 15 - scroll * 0.9) % (W + 40)) - 20;
+    const gy = LAND_Y + 8 + (i * 29) % (LAND_H - 18);
+    const gs = 4 + (i * 11) % 8;
+    ctx.fillStyle = i % 3 === 0 ? '#7a5a10' : '#5a3c08';
+    ctx.fillRect(Math.floor(gx), Math.floor(gy), gs, gs / 2 | 0 || 2);
+    ctx.fillRect(Math.floor(gx + 2), Math.floor(gy - 2), gs - 2, 2);
+  }
+
+  // Acacia trees — top-down flat canopy silhouettes, scrolling slowly
+  const acaciaPositions = [
+    { ox:0,   oy:12, r:9  },
+    { ox:110, oy:28, r:7  },
+    { ox:220, oy:8,  r:11 },
+    { ox:310, oy:38, r:8  },
+    { ox:430, oy:18, r:10 },
+    { ox:530, oy:32, r:7  },
+    { ox:620, oy:10, r:9  },
+    { ox:55,  oy:50, r:6  },
+    { ox:175, oy:58, r:8  },
+    { ox:370, oy:55, r:7  },
+    { ox:480, oy:60, r:10 },
+    { ox:670, oy:50, r:6  },
+  ];
+  acaciaPositions.forEach((a, i) => {
+    const ax = ((a.ox - scroll * (0.5 + i * 0.03)) % (W + 40) + W + 40) % (W + 40) - 20;
+    const ay = LAND_Y + a.oy;
+    const r = a.r;
+    // shadow beneath canopy
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#0a0400';
+    ctx.fillRect(Math.floor(ax - r + 2), Math.floor(ay - r/2 + 2), r*2, r);
+    ctx.globalAlpha = 1;
+    // canopy — flat circle approximated with rects (pixel art style)
+    ctx.fillStyle = '#1a3808';
+    ctx.fillRect(Math.floor(ax - r), Math.floor(ay - r/2), r*2, r);
+    ctx.fillRect(Math.floor(ax - r/2), Math.floor(ay - r*0.75), r, r*1.4);
+    // highlight
+    ctx.fillStyle = '#254a0a';
+    ctx.fillRect(Math.floor(ax - r/2), Math.floor(ay - r/2), r/2|0, r/3|0);
+  });
+
+  // River/water stripe — thin winding path
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = '#1a3050';
+  for (let rx = 0; rx < W; rx += 4) {
+    const wy = LAND_Y + 44 + Math.floor(Math.sin((rx + scroll * 0.4) * 0.025) * 10);
+    ctx.fillRect(rx, wy, 4, 5);
+  }
+  // water shimmer
+  ctx.fillStyle = '#2a5080';
+  for (let rx = 0; rx < W; rx += 12) {
+    const wy = LAND_Y + 44 + Math.floor(Math.sin((rx + scroll * 0.4) * 0.025) * 10);
+    ctx.fillRect(rx + ((frame*2)%12), wy + 1, 4, 2);
+  }
+  ctx.globalAlpha = 1;
+
+  // Dirt road running horizontally across the land
+  ctx.fillStyle = '#4a2c0a';
+  ctx.fillRect(0, LAND_Y + 68, W, 7);
+  ctx.fillStyle = '#382008';
+  // tyre track dashes
+  for (let dx = (-(scroll*1.2)|0) % 28; dx < W; dx += 28) {
+    ctx.fillRect(Math.floor(dx), LAND_Y + 70, 14, 2);
+  }
+
+  // Top and bottom edge of land strip — clear borders
+  ctx.fillStyle = '#1a0800';
+  ctx.fillRect(0, LAND_Y, W, 3);
+  ctx.fillRect(0, LAND_Y + LAND_H - 3, W, 3);
+
+  // ── DRAW GAME ELEMENTS ──────────────────────────────
+  // Shields
+  shields.forEach(drawShield);
+
+  // Invaders
+  invaders.forEach(inv => { if (inv.alive) drawInvader(inv); });
+
+  // UFO
+  if (ufoBoss) drawUFO(ufoBoss);
+
+  // Player
+  drawPlayer();
+
+  // Player bullets
+  bullets.forEach(b => {
+    if (b.player) {
+      // bright green laser
+      ctx.fillStyle = COL.green;
+      ctx.fillRect(Math.floor(b.x)-1, Math.floor(b.y)-6, 3, 12);
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = '#80ffaa';
+      ctx.fillRect(Math.floor(b.x)-2, Math.floor(b.y)-6, 5, 12);
+      ctx.globalAlpha = 1;
+    }
+  });
+
+  // Enemy bullets
+  enemyBullets.forEach(b => {
+    ctx.fillStyle = COL.red;
+    if (b.type === 'zigzag') {
+      // zigzag bolt shape
+      ctx.fillRect(Math.floor(b.x)-1, Math.floor(b.y)-4, 3, 4);
+      ctx.fillRect(Math.floor(b.x)+1, Math.floor(b.y), 3, 4);
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = '#ff6600';
+      ctx.fillRect(Math.floor(b.x)-2, Math.floor(b.y)-4, 5, 8);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.fillRect(Math.floor(b.x)-1, Math.floor(b.y)-6, 3, 12);
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = '#ff4400';
+      ctx.fillRect(Math.floor(b.x)-2, Math.floor(b.y)-6, 5, 12);
+      ctx.globalAlpha = 1;
+    }
+  });
+
+  // Wave counter - bright and readable
+  ctx.fillStyle = COL.orange2;
+  ctx.font = '7px "Press Start 2P"';
+  ctx.fillText(`WAVE ${wave}`, W/2 - 24, H - 8);
+
+  // Player lives icons bottom-left
+  for (let i = 0; i < lives; i++) {
+    const lx = 8 + i * 22, ly = H - 22;
+    px(lx+4, ly+2, 4, 3, COL.orange1);
+    px(lx+2, ly+4, 8, 4, COL.orange2);
+  }
+}
+
+// ── CONTROLS ──────────────────────────────────────────
+const keys = {};
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (state === 'running') playerShoot();
+  }
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// Mobile tap = shoot
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (state === 'running') playerShoot();
+}, { passive: false });
+
+// Mobile swipe = move (track touch position)
+let touchX = null;
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const tx = (e.touches[0].clientX - rect.left) / rect.width * W;
+  player.x = Math.max(0, Math.min(W-36, tx - 18));
+}, { passive: false });
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
