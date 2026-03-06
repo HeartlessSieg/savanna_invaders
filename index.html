@@ -62,7 +62,7 @@ const COL={
 // ── STATE
 let state='idle',numPlayers=1;
 let scores=[0,0],hiScore=0,lives=[3,3],wave=1;
-let players,bullets,enemyBullets,invaders,shields,particles;
+let players,bullets,enemyBullets,invaders,shields,particles,scorePopups;
 let invaderDir=1,invaderMoveTimer=0,invaderMoveInterval=40;
 let ufoBoss=null,ufoTimer=0;
 let frame=0,enemyShootTimer=0;
@@ -141,7 +141,8 @@ function getRowType(r,rows){
 }
 
 function getRowScore(r){
-  const scores_=[50,30,20,15,10,8];
+  // All animals score between 25–75, higher rows worth more
+  const scores_=[75,60,50,40,30,25];
   return scores_[Math.min(r,5)];
 }
 
@@ -160,24 +161,33 @@ function initInvaders(){
 }
 
 function spawnWaveBosses(){
+  const g=getGridDims();
   if(wave>=5){
-    // Wave 5+: 1 big boss (4x size, 2hp)
-    const bossHp=wave>=10?Math.min(4,2+Math.floor((wave-10)/2)+1):2;
+    const bossHp=2+Math.floor((wave-5)/5); // grows: 2hp at w5, 3 at w10, 4 at w15...
     invaders.push({
       row:-1,col:99,
-      x:W/2-36,y:20,
-      type:'boss_elephant',alive:true,animFrame:0,animTimer:0,
-      score:500,isBoss:true,hp:bossHp,maxHp:bossHp,
+      x:W/2-36,y:g.startY,           // spawns with the grid, not at y=20
+      type:'boss_mammoth',alive:true,animFrame:0,animTimer:0,
+      score:500+wave*20,isBoss:true,hp:bossHp,maxHp:bossHp,
       charging:false,chargeSpeed:0,
     });
   }
   if(wave>=10){
-    // Wave 10+: second mega boss (4x, 3-4 hp)
     invaders.push({
       row:-1,col:100,
-      x:W/2+60,y:20,
-      type:'boss_gorilla',alive:true,animFrame:0,animTimer:0,
-      score:800,isBoss:true,hp:4,maxHp:4,
+      x:W/2+70,y:g.startY,
+      type:'boss_chickduck',alive:true,animFrame:0,animTimer:0,
+      score:800+wave*25,isBoss:true,hp:3+Math.floor((wave-10)/5),maxHp:3+Math.floor((wave-10)/5),
+      charging:false,chargeSpeed:0,
+    });
+  }
+  // Every 5 waves after 15: extra boss with +1 hp each time
+  if(wave>=15&&(wave-15)%5===0){
+    invaders.push({
+      row:-1,col:101,
+      x:W/2-110,y:g.startY,
+      type:'boss_mammoth',alive:true,animFrame:0,animTimer:0,
+      score:600+wave*30,isBoss:true,hp:2+Math.floor((wave-15)/5),maxHp:2+Math.floor((wave-15)/5),
       charging:false,chargeSpeed:0,
     });
   }
@@ -222,7 +232,7 @@ function initShields(){
 
 function initGame(np){
   numPlayers=np||1;scores=[0,0];lives=[3,3];wave=1;
-  bullets=[];enemyBullets=[];particles=[];
+  bullets=[];enemyBullets=[];particles=[];scorePopups=[];
   invaderDir=1;invaderMoveTimer=0;invaderMoveInterval=40;
   ufoBoss=null;ufoTimer=0;frame=0;enemyShootTimer=0;
   if(!bg)buildBG();
@@ -234,6 +244,11 @@ function nextWave(){
   invaderDir=1;invaderMoveTimer=0;
   invaderMoveInterval=Math.max(8,40-wave*3);
   ufoBoss=null;ufoTimer=0;enemyShootTimer=0;
+  // Bonus life every other wave
+  if(wave%2===0){
+    lives[0]++;
+    if(numPlayers===2) lives[1]++;
+  }
   initPlayers();initInvaders();initShields();updateHUD();
 }
 
@@ -317,27 +332,60 @@ function drawBoss(inv){
   const hp=inv.hp,mhp=inv.maxHp;
   const charging=inv.charging;
 
-  if(inv.type==='boss_elephant'){
+  if(inv.type==='boss_mammoth'){
+    // Massive woolly mammoth — huge tusks, shaggy body, tiny eyes, trunk
     const c=charging?'#ff2000':(f===0?COL.boss2:COL.boss3);
-    px(x+p,y+p*2,p*8,p*6,c);px(x+p*7,y,p*5,p*5,c);
-    px(x,y+p*2,p*3,f===0?p*4:p*3,COL.boss1);
-    px(x+p*10,y+p*3,p*2,p*3,c);px(x+p*(f===0?11:10),y+p*5,p*2,p*2,c);
-    px(x+p*9,y+p*4,p*3,p,'#ffdd00');
-    px(x+p*9,y+p,p*2,p*2,'#ff0000');px(x+p*11,y+p,p*2,p*2,'#ff0000');
-    px(x+p*2,y+p*7,p*2,p*3,COL.boss1);px(x+p*5,y+p*7,p*2,p*3,COL.boss1);
-    px(x+p*2,y+p,p,p*2,COL.boss1);px(x+p*4,y,p,p*2,COL.boss1);px(x+p*6,y+p,p,p*2,COL.boss1);
-    // HP bar
+    const s=charging?'#ff6600':'#cc3300';
+    px(x+p,y+p*3,p*10,p*8,c);         // main body (shaggy)
+    px(x,y+p*4,p*3,p*6,s);            // shaggy left flank
+    px(x+p*9,y+p*4,p*3,p*6,s);        // shaggy right flank
+    px(x+p*6,y,p*6,p*5,c);            // head
+    // tusks — wide sweeping
+    px(x+p*4,y+p*4,p*3,p,COL.am);     // left tusk root
+    px(x+p*2,y+p*5,p*4,p,COL.am);     // left tusk sweep
+    px(x+p*10,y+p*4,p*3,p,COL.am);    // right tusk root
+    px(x+p*10,y+p*5,p*4,p,COL.am);    // right tusk sweep
+    // trunk
+    px(x+p*7,y+p*3,p*2,p*4,c);
+    px(x+p*(f===0?6:8),y+p*6,p*3,p*2,c);
+    // tiny eyes
+    px(x+p*7,y+p,p*2,p*2,'#ff0000');
+    // woolly top
+    for(let i=0;i<5;i++) px(x+p*(6+i),y+(f===0?-p:0),p,p*2,s);
+    // legs
+    px(x+p*2,y+p*10,p*2,p*3,s);px(x+p*5,y+p*10,p*2,p*3,s);
+    px(x+p*8,y+p*10,p*2,p*3,s);
     drawBossHPBar(x,y,inv);
 
-  }else if(inv.type==='boss_gorilla'){
+  }else if(inv.type==='boss_chickduck'){
+    // Mutant giant chicken-duck — feathered body, duck bill, chicken comb, webbed feet
     const c=charging?'#ff0000':(f===0?COL.boss1:COL.boss2);
-    px(x+p*2,y+p*2,p*8,p*7,c);px(x+p*3,y,p*6,p*4,c);
-    px(x+(f===0?0:p),y+p*3,p*(f===0?3:2),p*3,COL.boss1);
-    px(x+p*(f===0?9:8),y+p*3,p*(f===0?3:2),p*3,COL.boss1);
-    px(x+(f===0?-p:0),y+p*5,p*2,p*2,'#ffdd00');px(x+p*(f===0?10:9),y+p*5,p*2,p*2,'#ffdd00');
-    px(x+p*4,y+p,p*2,p*2,'#ff0000');px(x+p*7,y+p,p*2,p*2,'#ff0000');
-    px(x+p*4,y+p*2,p*4,p,COL.dimmer);
-    px(x+p*4,y+p*8,p*2,p*2,COL.dimmer);px(x+p*6,y+p*8,p*2,p*2,COL.dimmer);
+    // round fluffy body
+    px(x+p*2,y+p*3,p*9,p*8,c);
+    px(x+p,y+p*4,p*11,p*6,c);
+    // wing flap
+    px(x+(f===0?0:p),y+p*(f===0?4:5),p*3,p*(f===0?4:3),COL.boss3);
+    px(x+p*(f===0?10:9),y+p*(f===0?4:5),p*3,p*(f===0?4:3),COL.boss3);
+    // head
+    px(x+p*4,y,p*6,p*5,c);
+    // duck bill (flat orange)
+    px(x+p*8,y+p*2,p*4,p*2,'#ff8800');
+    px(x+p*10,y+p*2,p*3,p,'#ffaa00');
+    // chicken comb (red spikes on top)
+    px(x+p*4,y-p*2,p*2,p*3,'#ff0000');
+    px(x+p*6,y-p*3,p*2,p*4,'#ff0000');
+    px(x+p*8,y-p*2,p*2,p*3,'#ff0000');
+    // eyes — crazed
+    px(x+p*5,y+p,p*2,p*2,'#ff0000');
+    px(x+p*8,y+p,p,p,'#ffff00');
+    // wattle
+    px(x+p*7,y+p*3,p*2,p*2,'#cc0000');
+    // webbed feet
+    px(x+p*2,y+p*10,p*4,p*2,'#ff8800');px(x+p,y+p*11,p*5,p,'#ffaa00');
+    px(x+p*7,y+p*10,p*4,p*2,'#ff8800');px(x+p*7,y+p*11,p*5,p,'#ffaa00');
+    // tail feathers
+    px(x,y+p*(f===0?5:6),p*2,p*3,COL.boss3);
+    px(x-p,y+p*(f===0?4:5),p*2,p*2,COL.boss2);
     drawBossHPBar(x,y,inv);
   }
 }
@@ -347,7 +395,8 @@ function drawBossHPBar(x,y,inv){
   px(x,y-10,bw,bh,'#330000');
   px(x,y-10,Math.floor(bw*(inv.hp/inv.maxHp)),bh,inv.hp>2?'#00cc44':inv.hp>1?'#ffaa00':'#ff2200');
   ctx.fillStyle='#ffaa40';ctx.font='5px "Press Start 2P"';
-  ctx.fillText(inv.type==='boss_elephant'?'ELDER':'ALPHA',x,y-12);
+  const label=inv.type==='boss_mammoth'?'MAMMOTH':inv.type==='boss_chickduck'?'CHICKDUCK':'BOSS';
+  ctx.fillText(label,x,y-12);
 }
 
 // ── UFO
@@ -358,6 +407,9 @@ function drawUFO(ufo){
   px(x+p*5,y+p,p,p,'#ff0000');px(x+p*8,y+p,p,p,'#ff0000');
   px(x+p*4,y+p*4,p,p*2,COL.am);px(x+p*9,y+p*4,p,p*2,COL.am);
   ctx.globalAlpha=.25+Math.sin(frame*.2)*.15;px(x+p*2,y+p*4,p*10,p*2,COL.o2);ctx.globalAlpha=1;
+  // Score value hovering above the UFO
+  ctx.fillStyle='#ffff80';ctx.font='6px "Press Start 2P"';
+  ctx.fillText(ufo.score,x+8,y-3);
 }
 
 // ── PLAYER TANK
@@ -492,12 +544,12 @@ function loop(){
     const aliveAll=invaders.filter(i=>i.alive);
     const totalNormal=invaders.filter(i=>!i.isBoss).length;
 
-    // Boss charging: if boss is last one(s) alive, charge fast
+    // Boss charging: if boss is LAST alive, charge fast downward
     aliveBosses.forEach(boss=>{
-      if(aliveNormal.length===0&&aliveBosses.length<=2){
+      if(aliveNormal.length===0){
         boss.charging=true;
-        boss.chargeSpeed=boss.chargeSpeed||0;
-        boss.chargeSpeed=Math.min(8,boss.chargeSpeed+0.04);
+        boss.chargeSpeed=(boss.chargeSpeed||0);
+        boss.chargeSpeed=Math.min(10,boss.chargeSpeed+0.05);
         boss.y+=boss.chargeSpeed;
         boss.animTimer++;if(boss.animTimer>3){boss.animFrame=(boss.animFrame+1)%2;boss.animTimer=0;}
         if(boss.y+80>=players[0].y){gameOver(false);return;}
@@ -506,24 +558,35 @@ function loop(){
 
     // Move normal invader grid
     invaderMoveTimer++;
-    const speedFraction=aliveNormal.length>0?Math.max(0.05,aliveNormal.length/Math.max(1,totalNormal)):1;
-    // Last 5-6: hyper speed
+    const speedFraction=aliveNormal.length>0?Math.max(0.04,aliveNormal.length/Math.max(1,totalNormal)):1;
     const lastFew=aliveNormal.length>0&&aliveNormal.length<=6;
-    const dynInterval=lastFew?Math.max(2,3):Math.max(3,Math.floor(invaderMoveInterval*speedFraction));
+    // Smoother ramp: lerp between normal speed and max hyper speed based on how few remain
+    const hyperFrac=lastFew?Math.max(0,(6-aliveNormal.length)/6):0;
+    const baseInterval=Math.max(4,Math.floor(invaderMoveInterval*speedFraction));
+    const dynInterval=Math.max(2,Math.floor(baseInterval*(1-hyperFrac*0.7)));
+    const baseStep=10;
+    const step=Math.round(baseStep+(hyperFrac*14)); // 10px normal → up to 24px at last animal
 
     if(invaderMoveTimer>=dynInterval&&aliveNormal.length>0){
       invaderMoveTimer=0;
       let edgeHit=false;
-      const step=lastFew?18:10;
       aliveNormal.forEach(inv=>{
         inv.x+=invaderDir*step;
         if(inv.x>W-52||inv.x<6)edgeHit=true;
         inv.animTimer++;
         if(inv.animTimer>4){inv.animFrame=(inv.animFrame+1)%2;inv.animTimer=0;}
       });
+      // Bosses march with the grid (when not charging)
+      aliveBosses.forEach(boss=>{
+        if(!boss.charging){
+          boss.x+=invaderDir*step;
+          boss.animTimer++;if(boss.animTimer>5){boss.animFrame=(boss.animFrame+1)%2;boss.animTimer=0;}
+        }
+      });
       if(edgeHit){
         invaderDir*=-1;
-        aliveNormal.forEach(inv=>{inv.y+=lastFew?20:14;});
+        aliveNormal.forEach(inv=>{inv.y+=lastFew?22:14;});
+        aliveBosses.forEach(boss=>{if(!boss.charging)boss.y+=lastFew?22:14;});
       }
     }
 
@@ -544,9 +607,13 @@ function loop(){
       });
     });
 
-    // UFO
+    // UFO — rarer appearance, random score value each time
     ufoTimer++;
-    if(!ufoBoss&&ufoTimer>480+Math.random()*400){ufoBoss={x:-60,y:20,vx:2+wave*.2,score:200};ufoTimer=0;}
+    if(!ufoBoss&&ufoTimer>900+Math.random()*600){
+      const ufoScores=[50,100,150,200,250,300];
+      ufoBoss={x:-60,y:20,vx:2.5+wave*.15,score:ufoScores[Math.floor(Math.random()*ufoScores.length)]};
+      ufoTimer=0;
+    }
     if(ufoBoss){ufoBoss.x+=ufoBoss.vx;if(ufoBoss.x>W+70)ufoBoss=null;}
 
     // Enemy shoot
@@ -594,8 +661,10 @@ function loop(){
         }
       }
       if(ufoBoss&&rectHit(b.x-3,b.y-6,6,10,ufoBoss.x,ufoBoss.y,54,24)){
-        scores[b.owner]+=ufoBoss.score;updateHUD();
+        const pts=ufoBoss.score;
+        scores[b.owner]+=pts;updateHUD();
         spawnExplosion(ufoBoss.x+27,ufoBoss.y+12,COL.am,'#ffffff',24);
+        scorePopups.push({x:ufoBoss.x+10,y:ufoBoss.y,text:'+'+pts,life:60,maxLife:60,color:'#ffffff'});
         ufoBoss=null;return false;
       }
       return true;
@@ -618,6 +687,12 @@ function loop(){
     particles.forEach(pt=>{pt.x+=pt.vx;pt.y+=pt.vy;pt.vx*=.93;pt.vy*=.93;pt.life--;ctx.globalAlpha=pt.life/pt.maxLife;ctx.fillStyle=pt.color;ctx.fillRect(Math.floor(pt.x),Math.floor(pt.y),pt.size,pt.size);});
     ctx.globalAlpha=1;
     particles=particles.filter(p=>p.life>0);
+
+    // Score popups (float upward)
+    if(!scorePopups)scorePopups=[];
+    scorePopups.forEach(sp=>{sp.y-=0.6;sp.life--;ctx.globalAlpha=sp.life/sp.maxLife;ctx.fillStyle=sp.color;ctx.font='7px "Press Start 2P"';ctx.fillText(sp.text,Math.floor(sp.x),Math.floor(sp.y));});
+    ctx.globalAlpha=1;
+    scorePopups=scorePopups.filter(sp=>sp.life>0);
   }
 
   // ── DRAW
@@ -652,7 +727,7 @@ function loop(){
   ctx.fillStyle=COL.dim;ctx.fillRect(0,H-23,W,1);
   ctx.fillStyle=COL.o2;ctx.font='7px "Press Start 2P"';ctx.fillText(`WAVE ${wave}`,W/2-24,H-8);
 
-  for(let i=0;i<Math.max(0,lives[0]);i++){const lx=8+i*20,ly=H-18;px(lx+3,ly+1,4,3,COL.o1);px(lx,ly+3,10,5,COL.o2);}
+  for(let i=0;i<Math.max(0,lives[0]);i++){const lx=8+i*20,ly=H-18;px(lx+3,ly+1,4,3,'#20c030');px(lx,ly+3,10,5,'#30e848');}
   if(numPlayers===2){
     for(let i=0;i<Math.max(0,lives[1]);i++){const lx=W-28-i*20,ly=H-18;px(lx+3,ly+1,4,3,'#0080b0');px(lx,ly+3,10,5,'#00a0d0');}
   }
