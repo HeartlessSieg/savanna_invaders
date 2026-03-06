@@ -8,8 +8,8 @@
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{width:100%;height:100%;background:#000;font-family:'Press Start 2P',monospace;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-  #hud{width:min(840px,100vw);display:flex;align-items:center;justify-content:space-between;padding:5px 10px 3px;background:#080000;border:2px solid #c83000;border-bottom:none;box-sizing:border-box;}
-  #hud span{color:#ff6010;font-size:clamp(4px,1.2vw,8px);}
+  #hud{width:min(840px,100vw);display:flex;align-items:center;justify-content:space-between;padding:10px 16px 8px;background:#080000;border:2px solid #c83000;border-bottom:none;box-sizing:border-box;}
+  #hud span{color:#ff6010;font-size:clamp(7px,1.8vw,13px);}
   #hud b{color:#ff9040;}
   #gameWrapper{position:relative;width:min(840px,100vw);aspect-ratio:840/720;border:2px solid #c83000;box-shadow:0 0 40px #ff400044,inset 0 0 60px #1a000088;overflow:hidden;background:#000;}
   canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;}
@@ -104,8 +104,8 @@ function drawBG(){
 function initPlayers(){
   players=[];
   const base={w:33,h:22,cooldown:0,dead:false,deathTimer:0};
-  // P1 = RED tank, left side, W/A/D controls
-  const p1={...base,id:0,shootKey:'KeyW',leftKey:'KeyA',rightKey:'KeyD',bc:COL.p1b,bg:COL.p1g,bodyCol:'#ff6020',turretCol:'#ff8030',winCol:'#ffcc60',wheelCol:COL.dimmer};
+  // P1 = GREEN tank, left side, W/A/D controls
+  const p1={...base,id:0,shootKey:'KeyW',leftKey:'KeyA',rightKey:'KeyD',bc:COL.p1b,bg:COL.p1g,bodyCol:'#20c030',turretCol:'#30e848',winCol:'#ccffcc',wheelCol:'#0a3010'};
   // P2 = BLUE tank, right side, arrows+space controls
   const p2={...base,id:1,shootKey:'Space',leftKey:'ArrowLeft',rightKey:'ArrowRight',bc:COL.p2b,bg:COL.p2g,bodyCol:'#0080b0',turretCol:'#00a0d0',winCol:'#80ffff',wheelCol:'#002030'};
   if(numPlayers===1){p1.x=W/2-16;p1.y=H-52;players.push(p1);}
@@ -118,8 +118,19 @@ function initPlayers(){
 const BULK_TYPES=['hippo','croc','warthog']; // 3 bulk animal types
 
 function getGridDims(){
-  if(numPlayers===2) return{rows:6,cols:14,startX:10,colW:48,startY:32,rowH:42};
-  return{rows:5,cols:13,startX:20,colW:50,startY:36,rowH:44};
+  // Bunkers sit at H-130. One row above bunkers ≈ H-175 for the bottom invader row.
+  // Wave 1 starts at top (startY ~36). Each wave pushes startY down.
+  // After ~8 waves the bottom row of animals spawns just above the bunkers.
+  const bunkerY = H - 130;
+  const g = numPlayers===2
+    ? {rows:6, cols:14, startX:10, colW:48, rowH:42}
+    : {rows:5, cols:13, startX:20, colW:50, rowH:44};
+  const gridH = (g.rows - 1) * g.rowH; // pixel height of the entire grid
+  const topMin  = 36;                    // earliest wave: top of screen
+  const topMax  = bunkerY - gridH - 50;  // latest wave: bottom row just clears bunkers
+  const waveProgress = Math.min(1, (wave - 1) / 8); // reaches max at wave 9
+  g.startY = Math.floor(topMin + (topMax - topMin) * waveProgress);
+  return g;
 }
 
 function getRowType(r,rows){
@@ -173,19 +184,23 @@ function spawnWaveBosses(){
 }
 
 // ── SHIELDS
-// wave 1: 5 barriers at player zone
-// wave 2+: extra row of barriers between animals and player
+// Single row of 5 bunkers, horizontally centred in the play area
 function getShieldRows(){
-  // Always at player level; wave 2+ adds a mid-field row
+  // Shield width = 9 cols × 10px = 90px. Gap between 5 shields across 840px:
+  // total shields width = 5×90 = 450, remaining = 390, gap = 390/6 = 65px each side/between
+  const shieldW = 90; // 9 cells × cw10
+  const totalW  = 5 * shieldW;
+  const gap     = Math.floor((W - totalW) / 6);
+  const positions = [];
+  for(let i=0;i<5;i++) positions.push(gap + i*(shieldW+gap));
   const rows=[];
-  rows.push({y:H-118,count:5,positions:[50,175,305,435,565]});
-  if(wave>=2){
-    const midY=Math.floor(H*0.48);
-    rows.push({y:midY,count:4,positions:[80,220,380,520]});
-  }
+  rows.push({y:H-130,count:5,positions});
   if(wave>=4){
-    const highY=Math.floor(H*0.3);
-    rows.push({y:highY,count:3,positions:[120,310,500]});
+    // Wave 4+: one high row of 3, also centred
+    const highShieldW=90,highTotalW=3*highShieldW;
+    const highGap=Math.floor((W-highTotalW)/4);
+    const highPos=[highGap,highGap*2+highShieldW,highGap*3+highShieldW*2];
+    rows.push({y:Math.floor(H*0.32),count:3,positions:highPos});
   }
   return rows;
 }
@@ -347,7 +362,11 @@ function drawUFO(ufo){
 
 // ── PLAYER TANK
 function drawTank(pl){
-  if(pl.dead&&Math.floor(pl.deathTimer/4)%2===0)return;
+  // In 2-player mode: hide completely when dead. In 1-player: flash.
+  if(pl.dead){
+    if(numPlayers===2) return;               // 2P — disappear entirely
+    if(Math.floor(pl.deathTimer/4)%2===0) return; // 1P — flash
+  }
   const x=Math.floor(pl.x),y=Math.floor(pl.y),p=P;
   px(x,y+p*5,p*11,p*3,pl.wheelCol);px(x+p,y+p*4,p*9,p*2,pl.bodyCol);
   px(x+p*3,y+p*2,p*5,p*3,pl.turretCol);px(x+p*5,y,p*2,p*3,pl.turretCol);
@@ -392,7 +411,7 @@ function enemyShoot(){
 function playerShoot(pl){
   if(pl.dead||pl.cooldown>0)return;
   if(bullets.filter(b=>b.owner===pl.id).length>=1)return;
-  bullets.push({x:pl.x+15,y:pl.y,vy:-9,player:true,owner:pl.id,bc:pl.bc,bg:pl.bg});
+  bullets.push({x:pl.x+15,y:pl.y,vy:-15,player:true,owner:pl.id,bc:pl.bc,bg:pl.bg});
   pl.cooldown=42; // slower fire rate
 }
 
