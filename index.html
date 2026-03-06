@@ -6,791 +6,651 @@
 <title>SAVANNA INVADERS</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html, body {
-    width:100%; height:100%;
-    background:#000;
-    font-family:'Press Start 2P', monospace;
-    overflow:hidden;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-  }
-  #hud {
-    width:min(700px,100vw);
-    display:flex; align-items:center; justify-content:space-between;
-    padding:6px 12px 4px;
-    background:#0a0000;
-    border:2px solid #c83000;
-    border-bottom:none;
-    box-sizing:border-box;
-  }
-  #hud span { color:#ff6010; font-size:clamp(5px,1.4vw,9px); }
-  #hud b { color:#ff9040; }
-  #gameWrapper {
-    position:relative;
-    width:min(700px,100vw);
-    aspect-ratio:700/560;
-    border:2px solid #c83000;
-    box-shadow:0 0 40px #ff400044, inset 0 0 60px #1a000088;
-    overflow:hidden;
-    background:#000;
-  }
-  canvas {
-    display:block; width:100%; height:100%;
-    image-rendering:pixelated; image-rendering:crisp-edges;
-  }
-  #overlay {
-    position:absolute; inset:0;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:rgba(0,0,0,0.92);
-  }
-  #overlay h1 {
-    color:#ff4010;
-    font-size:clamp(10px,3.5vw,22px);
-    text-shadow:0 0 20px #ff400088, 3px 3px #6a1000;
-    letter-spacing:2px; text-align:center; line-height:2;
-    margin-bottom:8px;
-  }
-  #overlay .sub {
-    color:#ff8030; font-size:clamp(5px,1.2vw,8px);
-    text-align:center; line-height:2.4; margin-bottom:16px;
-  }
-  #overlay .btn {
-    margin-top:10px; padding:10px 22px;
-    background:#c83000; color:#fff8ee;
-    font-family:'Press Start 2P',monospace;
-    font-size:clamp(7px,1.5vw,10px);
-    border:none; cursor:pointer;
-    box-shadow:4px 4px #601000;
-    transition:transform 0.1s;
-  }
-  #overlay .btn:hover { background:#ff4010; }
-  #overlay .btn:active { transform:translate(2px,2px); box-shadow:2px 2px #601000; }
-  #overlay .lives { color:#ff6010; font-size:clamp(5px,1.2vw,8px); margin-top:12px; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;background:#000;font-family:'Press Start 2P',monospace;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  #hud{width:min(840px,100vw);display:flex;align-items:center;justify-content:space-between;padding:5px 10px 3px;background:#080000;border:2px solid #c83000;border-bottom:none;box-sizing:border-box;}
+  #hud span{color:#ff6010;font-size:clamp(4px,1.2vw,8px);}
+  #hud b{color:#ff9040;}
+  #gameWrapper{position:relative;width:min(840px,100vw);aspect-ratio:840/720;border:2px solid #c83000;box-shadow:0 0 40px #ff400044,inset 0 0 60px #1a000088;overflow:hidden;background:#000;}
+  canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;}
+  #overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.93);}
+  #overlay h1{color:#ff4010;font-size:clamp(10px,3.2vw,20px);text-shadow:0 0 20px #ff400088,3px 3px #6a1000;letter-spacing:2px;text-align:center;line-height:2;margin-bottom:6px;}
+  .sub{color:#ff8030;font-size:clamp(4px,1.1vw,7px);text-align:center;line-height:2.4;margin-bottom:10px;}
+  .btnrow{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;justify-content:center;}
+  .btn{padding:9px 16px;background:#c83000;color:#fff8ee;font-family:'Press Start 2P',monospace;font-size:clamp(5px,1.2vw,8px);border:none;cursor:pointer;box-shadow:4px 4px #601000;transition:transform .1s;}
+  .btn:hover{background:#ff4010;}
+  .btn:active{transform:translate(2px,2px);box-shadow:2px 2px #601000;}
+  .btn.p2{background:#005580;box-shadow:4px 4px #002030;}
+  .btn.p2:hover{background:#0080b0;}
 </style>
 </head>
 <body>
-
 <div id="hud">
-  <span>SCORE: <b id="scoreVal">0</b></span>
-  <span>SAVANNA INVADERS</span>
-  <span>HI: <b id="hiVal">0</b> &nbsp; LIVES: <b id="livesVal">3</b></span>
+  <span>P1:<b id="s1">0</b></span>
+  <span>SAVANNA INVADERS &nbsp;|&nbsp; HI:<b id="hiVal">0</b> &nbsp; W:<b id="waveVal">1</b></span>
+  <span>P2:<b id="s2">—</b></span>
 </div>
 <div id="gameWrapper">
-  <canvas id="gc" width="700" height="560"></canvas>
+  <canvas id="gc" width="840" height="720"></canvas>
   <div id="overlay">
     <h1>SAVANNA<br>INVADERS</h1>
-    <div class="sub">
-      MUTANT ANIMALS ATTACK!<br>
-      ← → MOVE &nbsp; SPACE = SHOOT<br>
-      MOBILE: TAP TO SHOOT
+    <div class="sub">MUTANT ANIMALS INVADE THE SAVANNA!<br>DEFEND YOUR TERRITORY</div>
+    <div class="btnrow">
+      <button class="btn" onclick="startGame(1)">▶ 1 PLAYER</button>
+      <button class="btn p2" onclick="startGame(2)">▶▶ 2 PLAYERS</button>
     </div>
-    <button class="btn" onclick="startGame()">▶ START</button>
+    <div class="sub" style="margin-top:12px">P1(RED): A/D MOVE &nbsp; W=FIRE<br>P2(BLUE): ←→ MOVE &nbsp; SPACE=FIRE<br>MOBILE: DRAG=MOVE &nbsp; TAP=FIRE</div>
   </div>
 </div>
-
 <script>
-const canvas = document.getElementById('gc');
-const ctx = canvas.getContext('2d');
-ctx.imageSmoothingEnabled = false;
-const W = 700, H = 560;
-const P = 3; // pixel unit
+const canvas=document.getElementById('gc');
+const ctx=canvas.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+const W=840,H=720,P=3;
 
-// ── PALETTE ──────────────────────────────────────────
-const COL = {
-  bg:       '#000000',
-  scanline: '#ff200008',
-  gridLine: '#ff300006',
-  orange1:  '#ff4010',
-  orange2:  '#ff6020',
-  orange3:  '#ff8030',
-  amber:    '#ffaa40',
-  dim:      '#661000',
-  dimmer:   '#330800',
-  green:    '#40ff80',   // player bullet
-  red:      '#ff2000',   // enemy bullet
-  shield:   '#ff7020',
-  shieldDim:'#883010',
+const COL={
+  o1:'#ff4010',o2:'#ff6020',o3:'#ff8030',am:'#ffaa40',
+  dim:'#661000',dimmer:'#330800',
+  p1b:'#40ff80',p1g:'#80ffaa',
+  p2b:'#40d0ff',p2g:'#80eeff',
+  eb:'#ff2000',ebB:'#ff6600',
+  sh:'#ff7020',shL:'#441808',shM:'#883010',
+  sc:'#ff200009',
+  boss1:'#cc2200',boss2:'#ff4400',boss3:'#ff8800',
 };
 
-// ── STATE ─────────────────────────────────────────────
-let state = 'idle';
-let score = 0, hiScore = 0, lives = 3, wave = 1;
-let player, bullets, enemyBullets, invaders, shields, particles;
-let invaderDir = 1, invaderDropTimer = 0, invaderMoveTimer = 0;
-let invaderMoveInterval = 40;
-let ufoBoss = null, ufoTimer = 0;
-let frame = 0;
+// ── STATE
+let state='idle',numPlayers=1;
+let scores=[0,0],hiScore=0,lives=[3,3],wave=1;
+let players,bullets,enemyBullets,invaders,shields,particles;
+let invaderDir=1,invaderMoveTimer=0,invaderMoveInterval=40;
+let ufoBoss=null,ufoTimer=0;
+let frame=0,enemyShootTimer=0;
+let bg=null;
 
-// ── PLAYER ────────────────────────────────────────────
-function initPlayer() {
-  player = { x: W/2 - 16, y: H - 52, w: 32, h: 20, cooldown: 0, dead: false, deathTimer: 0 };
+// ── STATIC BG
+function buildBG(){
+  bg={terrain:[],grass:[],trees:[],river:[]};
+  const r=n=>Math.floor(Math.random()*n);
+  for(let i=0;i<55;i++) bg.terrain.push({x:r(W),y:r(H),w:12+r(36),h:3+r(13),c:['#3a1c06','#4a2408','#2e1604','#382008','#503010','#3e2204'][r(6)]});
+  for(let i=0;i<75;i++) bg.grass.push({x:r(W),y:r(H),s:3+r(6),c:Math.random()<.5?'#7a5a10':'#5a3c08'});
+  for(let i=0;i<26;i++) bg.trees.push({x:18+r(W-36),y:18+r(H-36),rx:5+r(14)});
+  for(let ry=0;ry<H;ry+=3) bg.river.push({y:ry,x:Math.floor(Math.sin(ry*.022)*22)});
 }
 
-// ── INVADER GRID ──────────────────────────────────────
-const ROWS = 4, COLS = 10;
-const TYPES = ['elephant','rhino','hippo','croc']; // row types top→bottom
-const ROW_SCORES = [30, 20, 15, 10];
-
-function initInvaders() {
-  invaders = [];
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      invaders.push({
-        row: r, col: c,
-        x: 60 + c * 56,
-        y: 60 + r * 46,
-        type: TYPES[r],
-        alive: true,
-        animFrame: 0,
-        animTimer: 0,
-        score: ROW_SCORES[r],
-      });
-    }
-  }
-}
-
-// ── SHIELDS ───────────────────────────────────────────
-function initShields() {
-  shields = [];
-  const positions = [90, 230, 370, 510];
-  positions.forEach(sx => {
-    // each shield = grid of 8x5 cells
-    const cells = [];
-    const shw = 8, shh = 5;
-    for (let r = 0; r < shh; r++) {
-      for (let c = 0; c < shw; c++) {
-        // notch bottom-center
-        if (r >= 3 && c >= 3 && c <= 4) continue;
-        cells.push({ r, c, hp: 3 });
-      }
-    }
-    shields.push({ x: sx, y: H - 110, cells, cw: 10, ch: 8 });
+function drawBG(){
+  ctx.fillStyle='#1e0e02';ctx.fillRect(0,0,W,H);
+  bg.terrain.forEach(t=>{ctx.fillStyle=t.c;ctx.fillRect(t.x,t.y,t.w,t.h);});
+  bg.grass.forEach(g=>{ctx.fillStyle=g.c;ctx.fillRect(g.x,g.y,g.s,Math.max(2,Math.ceil(g.s*.4)));ctx.fillRect(g.x+2,g.y-2,Math.max(1,g.s-2),2);});
+  bg.trees.forEach(t=>{
+    const r=t.rx;
+    ctx.globalAlpha=.28;ctx.fillStyle='#0a0400';ctx.fillRect(t.x-r+2,t.y-r/2+3,r*2,r);
+    ctx.globalAlpha=.65;ctx.fillStyle='#1a3808';ctx.fillRect(t.x-r,t.y-r/2,r*2,r);ctx.fillRect(t.x-r/2,t.y-r*.8,r,r*1.5);
+    ctx.fillStyle='#254a0a';ctx.fillRect(t.x-r/3,t.y-r/3,Math.max(2,r/2),Math.max(1,r/3));
+    ctx.globalAlpha=1;
   });
+  const rx=W*.68;
+  ctx.globalAlpha=.4;
+  bg.river.forEach(pt=>{ctx.fillStyle='#1a3050';ctx.fillRect(Math.floor(rx+pt.x),pt.y,6,4);});
+  ctx.fillStyle='#2a5080';
+  bg.river.forEach((pt,i)=>{if((i+(frame>>2))%5===0)ctx.fillRect(Math.floor(rx+pt.x+1),pt.y+1,3,2);});
+  ctx.globalAlpha=.45;ctx.fillStyle='#4a2c0a';ctx.fillRect(0,H*.74,W,13);
+  ctx.fillStyle='#382008';for(let dx=0;dx<W;dx+=28)ctx.fillRect(dx,H*.74+5,14,3);
+  ctx.globalAlpha=1;
+  ctx.fillStyle=COL.sc;for(let sy=0;sy<H;sy+=3)ctx.fillRect(0,sy,W,1);
 }
 
-function initGame() {
-  score = 0; lives = 3; wave = 1;
-  bullets = []; enemyBullets = []; particles = [];
-  invaderDir = 1; invaderDropTimer = 0; invaderMoveTimer = 0;
-  invaderMoveInterval = 42; ufoBoss = null; ufoTimer = 0; frame = 0;
-  initPlayer(); initInvaders(); initShields();
-  document.getElementById('livesVal').textContent = lives;
-  document.getElementById('scoreVal').textContent = 0;
+// ── PLAYERS
+function initPlayers(){
+  players=[];
+  const base={w:33,h:22,cooldown:0,dead:false,deathTimer:0};
+  // P1 = RED tank, left side, W/A/D controls
+  const p1={...base,id:0,shootKey:'KeyW',leftKey:'KeyA',rightKey:'KeyD',bc:COL.p1b,bg:COL.p1g,bodyCol:'#ff6020',turretCol:'#ff8030',winCol:'#ffcc60',wheelCol:COL.dimmer};
+  // P2 = BLUE tank, right side, arrows+space controls
+  const p2={...base,id:1,shootKey:'Space',leftKey:'ArrowLeft',rightKey:'ArrowRight',bc:COL.p2b,bg:COL.p2g,bodyCol:'#0080b0',turretCol:'#00a0d0',winCol:'#80ffff',wheelCol:'#002030'};
+  if(numPlayers===1){p1.x=W/2-16;p1.y=H-52;players.push(p1);}
+  else{p1.x=W/4-16;p1.y=H-52;p2.x=W*3/4-16;p2.y=H-52;players.push(p1,p2);}
 }
 
-function nextWave() {
-  wave++;
-  bullets = []; enemyBullets = []; particles = [];
-  invaderDir = 1; invaderDropTimer = 0; invaderMoveTimer = 0;
-  invaderMoveInterval = Math.max(10, 42 - wave * 4);
-  ufoBoss = null; ufoTimer = 0;
-  initInvaders(); initShields();
+// ── INVADER GRID
+// 1P: 5 rows x 13 cols (65 animals) — 3 bulk types + rare eagle top row
+// 2P: 6 rows x 14 cols (84 animals) ~2.5x density feel with wider grid
+const BULK_TYPES=['hippo','croc','warthog']; // 3 bulk animal types
+
+function getGridDims(){
+  if(numPlayers===2) return{rows:6,cols:14,startX:10,colW:48,startY:32,rowH:42};
+  return{rows:5,cols:13,startX:20,colW:50,startY:36,rowH:44};
 }
 
-// ── PIXEL DRAWING HELPERS ────────────────────────────
-function px(x, y, w, h, col) {
-  ctx.fillStyle = col;
-  ctx.fillRect(Math.floor(x), Math.floor(y), w, h);
+function getRowType(r,rows){
+  if(r===0) return 'eagle';       // rare top row
+  if(r===1) return 'gorilla';     // second row
+  // bottom rows are the 3 bulk types cycling
+  return BULK_TYPES[(r-2)%BULK_TYPES.length];
 }
 
-// ── DRAW INVADERS ─────────────────────────────────────
-function drawInvader(inv) {
-  const x = Math.floor(inv.x), y = Math.floor(inv.y);
-  const f = inv.animFrame;
-  const p = P;
+function getRowScore(r){
+  const scores_=[50,30,20,15,10,8];
+  return scores_[Math.min(r,5)];
+}
 
-  if (inv.type === 'elephant') {
-    // Mutant elephant — big body, trunk, tusks, red eyes
-    const c = f === 0 ? COL.orange2 : COL.orange3;
-    // body
-    px(x+p, y+p*2, p*8, p*6, c);
-    // head
-    px(x+p*7, y, p*5, p*5, c);
-    // ear flap (animates)
-    px(x, y+p*2, p*3, f===0?p*4:p*3, COL.orange1);
-    // trunk (wiggles)
-    px(x+p*10, y+p*3, p*2, p*3, c);
-    px(x+p*(f===0?11:10), y+p*5, p*2, p*2, c);
-    // tusk
-    px(x+p*9, y+p*4, p*3, p, COL.amber);
-    // eyes (glowing red)
-    px(x+p*9, y+p, p, p, '#ff0000');
-    px(x+p*11, y+p, p, p, '#ff0000');
-    // legs
-    px(x+p*2, y+p*7, p*2, p*3, COL.dim);
-    px(x+p*5, y+p*7, p*2, p*3, COL.dim);
-    // mutation: spikes on back
-    px(x+p*2, y+p, p, p*2, COL.orange1);
-    px(x+p*4, y, p, p*2, COL.orange1);
-    px(x+p*6, y+p, p, p*2, COL.orange1);
-
-  } else if (inv.type === 'rhino') {
-    // Mutant rhino — armoured, dual horns
-    const c = f === 0 ? COL.orange1 : COL.orange2;
-    // body
-    px(x+p, y+p*3, p*10, p*5, c);
-    // head
-    px(x+p*8, y+p*2, p*4, p*4, c);
-    // armour plates
-    px(x+p*2, y+p*3, p*3, p*2, COL.dim);
-    px(x+p*6, y+p*3, p*3, p*2, COL.dim);
-    // horns
-    px(x+p*10, y, p*2, p*3, COL.amber);
-    px(x+p*11, y-p, p, p*2, COL.amber);
-    // eye
-    px(x+p*10, y+p*2, p, p, '#ff0000');
-    // legs
-    px(x+p*2, y+p*7, p*2, p*2, COL.dimmer);
-    px(x+p*5, y+p*7, p*2, p*2, COL.dimmer);
-    px(x+p*8, y+p*7, p*2, p*2, COL.dimmer);
-    // tail spines
-    px(x, y+p*3, p, p*2, f===0?COL.orange3:COL.orange1);
-    px(x, y+p*5, p, p*2, f===0?COL.orange1:COL.orange3);
-
-  } else if (inv.type === 'hippo') {
-    // Mutant hippo — massive jaws, small eyes, drips
-    const c = f === 0 ? COL.orange3 : COL.amber;
-    // body
-    px(x, y+p*3, p*12, p*5, c);
-    // head
-    px(x+p*2, y, p*8, p*5, c);
-    // giant jaw (open/close)
-    if (f === 0) {
-      px(x+p*2, y+p*3, p*8, p*2, COL.dim);
-      px(x+p*3, y+p*4, p*6, p, '#cc0000');  // inner mouth red
-    }
-    // eyes
-    px(x+p*3, y+p, p, p, '#ff0000');
-    px(x+p*7, y+p, p, p, '#ff0000');
-    // teeth
-    px(x+p*3, y+p*3, p, p*2, COL.amber);
-    px(x+p*5, y+p*3, p, p*2, COL.amber);
-    px(x+p*7, y+p*3, p, p*2, COL.amber);
-    // legs
-    px(x+p*2, y+p*7, p*2, p*2, COL.dim);
-    px(x+p*8, y+p*7, p*2, p*2, COL.dim);
-    // mutation drip
-    px(x+p*4, y+p*7, p, p*2, f===0?'#ff6000':'#ff2000');
-    px(x+p*7, y+p*8, p, p*2, f===1?'#ff6000':'#ff2000');
-
-  } else if (inv.type === 'croc') {
-    // Mutant croc — long snout, spiny back, small
-    const c = f === 0 ? COL.orange1 : COL.orange2;
-    // body
-    px(x+p*2, y+p*3, p*10, p*3, c);
-    // snout
-    px(x+p*9, y+p*2, p*5, p*3, c);
-    px(x+p*13, y+p*2, p*2, p*2, COL.amber); // teeth
-    // tail
-    px(x, y+p*4, p*3, p*2, c);
-    px(x-p, y+p*5, p*2, p, c);
-    // spines (animate)
-    for (let i = 0; i < 4; i++) {
-      px(x+p*(3+i*2), y+p*(f===0?2:1), p, p*2, COL.orange3);
-    }
-    // eye
-    px(x+p*11, y+p*2, p, p, '#ff0000');
-    // legs
-    px(x+p*3, y+p*5, p*2, p*2, COL.dim);
-    px(x+p*7, y+p*5, p*2, p*2, COL.dim);
+function initInvaders(){
+  invaders=[];
+  const g=getGridDims();
+  for(let r=0;r<g.rows;r++) for(let c=0;c<g.cols;c++){
+    invaders.push({
+      row:r,col:c,x:g.startX+c*g.colW,y:g.startY+r*g.rowH,
+      type:getRowType(r,g.rows),alive:true,animFrame:0,animTimer:0,
+      score:getRowScore(r),isBoss:false,hp:1,maxHp:1,
+    });
   }
+  // Add boss(es) for wave 5+
+  spawnWaveBosses();
 }
 
-// ── DRAW UFO ──────────────────────────────────────────
-function drawUFO(ufo) {
-  const x = Math.floor(ufo.x), y = Math.floor(ufo.y);
-  const p = P, f = (frame % 20 < 10) ? 0 : 1;
-  // Mutant flying eagle boss
-  px(x+p*3, y+p*2, p*8, p*3, COL.amber);
-  px(x+p, y+p*3, p*12, p*2, COL.orange2);
-  px(x+p*5, y, p*4, p*3, COL.orange3);
-  // wings flap
-  px(x, y+p*(f===0?2:3), p*4, p*2, COL.orange1);
-  px(x+p*10, y+p*(f===0?2:3), p*4, p*2, COL.orange1);
-  // eyes
-  px(x+p*5, y+p, p, p, '#ff0000');
-  px(x+p*8, y+p, p, p, '#ff0000');
-  // talons
-  px(x+p*4, y+p*4, p, p*2, COL.amber);
-  px(x+p*9, y+p*4, p, p*2, COL.amber);
-  // glow under
-  ctx.globalAlpha = 0.3 + Math.sin(frame*0.2)*0.15;
-  px(x+p*2, y+p*4, p*10, p*2, COL.orange2);
-  ctx.globalAlpha = 1;
-}
-
-// ── DRAW PLAYER ───────────────────────────────────────
-function drawPlayer() {
-  if (player.dead) {
-    // death flash
-    if (Math.floor(player.deathTimer / 4) % 2 === 0) return;
+function spawnWaveBosses(){
+  if(wave>=5){
+    // Wave 5+: 1 big boss (4x size, 2hp)
+    const bossHp=wave>=10?Math.min(4,2+Math.floor((wave-10)/2)+1):2;
+    invaders.push({
+      row:-1,col:99,
+      x:W/2-36,y:20,
+      type:'boss_elephant',alive:true,animFrame:0,animTimer:0,
+      score:500,isBoss:true,hp:bossHp,maxHp:bossHp,
+      charging:false,chargeSpeed:0,
+    });
   }
-  const x = Math.floor(player.x), y = Math.floor(player.y);
-  const p = P;
-  // Warrior/soldier silhouette
-  // base/tank tread
-  px(x, y+p*5, p*11, p*3, COL.dim);
-  px(x+p, y+p*4, p*9, p*2, COL.orange1);
-  // turret body
-  px(x+p*3, y+p*2, p*5, p*3, COL.orange2);
-  // barrel
-  px(x+p*5, y, p*2, p*3, COL.orange3);
-  // head/cabin
-  px(x+p*2, y+p*2, p*7, p*2, COL.orange2);
-  // window
-  px(x+p*4, y+p*2, p*3, p, '#ffcc60');
-  // wheels
-  px(x+p, y+p*6, p*2, p*2, COL.dimmer);
-  px(x+p*4, y+p*6, p*2, p*2, COL.dimmer);
-  px(x+p*7, y+p*6, p*2, p*2, COL.dimmer);
-}
-
-// ── DRAW SHIELD ───────────────────────────────────────
-function drawShield(sh) {
-  sh.cells.forEach(cell => {
-    const cx = sh.x + cell.c * sh.cw;
-    const cy = sh.y + cell.r * sh.ch;
-    const col = cell.hp === 3 ? COL.shield : cell.hp === 2 ? COL.shieldDim : '#441808';
-    px(cx, cy, sh.cw - 1, sh.ch - 1, col);
-  });
-}
-
-// ── PARTICLES ────────────────────────────────────────
-function spawnExplosion(x, y, col1, col2, count=14) {
-  for (let i = 0; i < count; i++) {
-    particles.push({
-      x, y,
-      vx: (Math.random()-0.5)*7,
-      vy: (Math.random()-0.5)*7,
-      life: 28, maxLife: 28,
-      color: Math.random()<0.5 ? col1 : col2,
-      size: Math.random()<0.3 ? 4 : 2,
+  if(wave>=10){
+    // Wave 10+: second mega boss (4x, 3-4 hp)
+    invaders.push({
+      row:-1,col:100,
+      x:W/2+60,y:20,
+      type:'boss_gorilla',alive:true,animFrame:0,animTimer:0,
+      score:800,isBoss:true,hp:4,maxHp:4,
+      charging:false,chargeSpeed:0,
     });
   }
 }
 
-// ── ENEMY SHOOTING ───────────────────────────────────
-let enemyShootTimer = 0;
-const BASE_SHOOT_INTERVAL = 70;
-
-function enemyShoot() {
-  const alive = invaders.filter(i => i.alive);
-  if (!alive.length) return;
-  // pick random living invader (weighted toward bottom rows)
-  const bottom = {};
-  alive.forEach(i => {
-    if (!bottom[i.col] || i.row > bottom[i.col].row) bottom[i.col] = i;
-  });
-  const shooters = Object.values(bottom);
-  const shooter = shooters[Math.floor(Math.random()*shooters.length)];
-  enemyBullets.push({
-    x: shooter.x + 18,
-    y: shooter.y + 20,
-    vy: 3.5 + wave * 0.4,
-    type: Math.random() < 0.3 ? 'zigzag' : 'straight',
-    age: 0,
-  });
+// ── SHIELDS
+// wave 1: 5 barriers at player zone
+// wave 2+: extra row of barriers between animals and player
+function getShieldRows(){
+  // Always at player level; wave 2+ adds a mid-field row
+  const rows=[];
+  rows.push({y:H-118,count:5,positions:[50,175,305,435,565]});
+  if(wave>=2){
+    const midY=Math.floor(H*0.48);
+    rows.push({y:midY,count:4,positions:[80,220,380,520]});
+  }
+  if(wave>=4){
+    const highY=Math.floor(H*0.3);
+    rows.push({y:highY,count:3,positions:[120,310,500]});
+  }
+  return rows;
 }
 
-// ── SHOOTING ──────────────────────────────────────────
-function playerShoot() {
-  if (player.dead || player.cooldown > 0) return;
-  if (bullets.filter(b=>b.player).length >= 2) return;
-  bullets.push({ x: player.x + 15, y: player.y, vy: -10, player: true });
-  player.cooldown = 18;
-}
-
-// ── COLLISION ────────────────────────────────────────
-function rectHit(ax,ay,aw,ah, bx,by,bw,bh) {
-  return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
-}
-
-function checkBulletShield(bx, by, bw, bh) {
-  for (const sh of shields) {
-    for (const cell of sh.cells) {
-      const cx = sh.x + cell.c * sh.cw, cy = sh.y + cell.r * sh.ch;
-      if (rectHit(bx,by,bw,bh, cx,cy,sh.cw-1,sh.ch-1)) {
-        cell.hp--;
-        if (cell.hp <= 0) sh.cells.splice(sh.cells.indexOf(cell), 1);
-        return true;
+function initShields(){
+  shields=[];
+  const rows=getShieldRows();
+  rows.forEach(row=>{
+    row.positions.forEach(sx=>{
+      const cells=[];
+      for(let r=0;r<5;r++) for(let c=0;c<9;c++){
+        if(r>=3&&c>=3&&c<=5) continue;
+        cells.push({r,c,hp:Math.random()<0.35?2:1});
       }
+      shields.push({x:sx,y:row.y,cells,cw:10,ch:7});
+    });
+  });
+}
+
+function initGame(np){
+  numPlayers=np||1;scores=[0,0];lives=[3,3];wave=1;
+  bullets=[];enemyBullets=[];particles=[];
+  invaderDir=1;invaderMoveTimer=0;invaderMoveInterval=40;
+  ufoBoss=null;ufoTimer=0;frame=0;enemyShootTimer=0;
+  if(!bg)buildBG();
+  initPlayers();initInvaders();initShields();updateHUD();
+}
+
+function nextWave(){
+  wave++;bullets=[];enemyBullets=[];particles=[];
+  invaderDir=1;invaderMoveTimer=0;
+  invaderMoveInterval=Math.max(8,40-wave*3);
+  ufoBoss=null;ufoTimer=0;enemyShootTimer=0;
+  initPlayers();initInvaders();initShields();updateHUD();
+}
+
+function updateHUD(){
+  document.getElementById('s1').textContent=scores[0];
+  document.getElementById('s2').textContent=numPlayers===2?scores[1]:'—';
+  document.getElementById('hiVal').textContent=hiScore;
+  document.getElementById('waveVal').textContent=wave;
+}
+
+// ── PIXEL HELPER
+function px(x,y,w,h,col){ctx.fillStyle=col;ctx.fillRect(Math.floor(x),Math.floor(y),w,h);}
+
+// ── DRAW INVADERS
+function drawInvader(inv){
+  const x=Math.floor(inv.x),y=Math.floor(inv.y),f=inv.animFrame,p=P;
+  if(inv.isBoss){drawBoss(inv);return;}
+  const t=inv.type;
+
+  if(t==='eagle'){
+    const c=f===0?COL.o3:COL.am;
+    px(x+p*3,y+p*2,p*6,p*3,c);
+    px(x,y+p*(f===0?1:2),p*4,p*2,COL.o2);px(x+p*8,y+p*(f===0?1:2),p*4,p*2,COL.o2);
+    px(x-p,y+p*(f===0?2:3),p*2,p,COL.o1);px(x+p*11,y+p*(f===0?2:3),p*2,p,COL.o1);
+    px(x+p*4,y,p*4,p*3,c);px(x+p*5,y,p*2,p,COL.am);
+    px(x+p*3,y+p*4,p,p*2,COL.am);px(x+p*8,y+p*4,p,p*2,COL.am);
+    px(x+p*5,y+p,p,p,'#ff0000');
+
+  }else if(t==='gorilla'){
+    const c=f===0?COL.o2:COL.o3;
+    px(x+p*2,y+p*2,p*8,p*7,c);px(x+p*3,y,p*6,p*4,c);
+    px(x+(f===0?0:p),y+p*3,p*(f===0?3:2),p*3,COL.o1);
+    px(x+p*(f===0?9:8),y+p*3,p*(f===0?3:2),p*3,COL.o1);
+    px(x+(f===0?-p:0),y+p*5,p*2,p*2,COL.am);px(x+p*(f===0?10:9),y+p*5,p*2,p*2,COL.am);
+    px(x+p*4,y+p,p,p,'#ff0000');px(x+p*7,y+p,p,p,'#ff0000');
+    px(x+p*4,y+p*2,p*4,p,COL.dim);
+    px(x+p*4,y+p*8,p*2,p*2,COL.dim);px(x+p*6,y+p*8,p*2,p*2,COL.dim);
+
+  }else if(t==='elephant'){
+    const c=f===0?COL.o2:COL.o3;
+    px(x+p,y+p*2,p*8,p*6,c);px(x+p*7,y,p*5,p*5,c);
+    px(x,y+p*2,p*3,f===0?p*4:p*3,COL.o1);
+    px(x+p*10,y+p*3,p*2,p*3,c);px(x+p*(f===0?11:10),y+p*5,p*2,p*2,c);
+    px(x+p*9,y+p*4,p*3,p,COL.am);
+    px(x+p*9,y+p,p,p,'#ff0000');px(x+p*11,y+p,p,p,'#ff0000');
+    px(x+p*2,y+p*7,p*2,p*3,COL.dim);px(x+p*5,y+p*7,p*2,p*3,COL.dim);
+    px(x+p*2,y+p,p,p*2,COL.o1);px(x+p*4,y,p,p*2,COL.o1);px(x+p*6,y+p,p,p*2,COL.o1);
+
+  }else if(t==='hippo'){
+    const c=f===0?COL.o3:COL.am;
+    px(x,y+p*3,p*12,p*5,c);px(x+p*2,y,p*8,p*5,c);
+    if(f===0){px(x+p*2,y+p*3,p*8,p*2,COL.dim);px(x+p*3,y+p*4,p*6,p,'#cc0000');}
+    px(x+p*3,y+p,p,p,'#ff0000');px(x+p*7,y+p,p,p,'#ff0000');
+    px(x+p*3,y+p*3,p,p*2,COL.am);px(x+p*5,y+p*3,p,p*2,COL.am);px(x+p*7,y+p*3,p,p*2,COL.am);
+    px(x+p*2,y+p*7,p*2,p*2,COL.dim);px(x+p*8,y+p*7,p*2,p*2,COL.dim);
+    px(x+p*5,y+p*7,p,p*(f===0?2:3),f===0?'#ff6000':'#ff2000');
+
+  }else if(t==='croc'){
+    const c=f===0?COL.o1:COL.o2;
+    px(x+p*2,y+p*3,p*10,p*3,c);px(x+p*9,y+p*2,p*5,p*3,c);
+    px(x+p*13,y+p*2,p*2,p*2,COL.am);
+    px(x,y+p*4,p*3,p*2,c);px(x-p,y+p*5,p*2,p,c);
+    for(let i=0;i<4;i++)px(x+p*(3+i*2),y+p*(f===0?2:1),p,p*2,COL.o3);
+    px(x+p*11,y+p*2,p,p,'#ff0000');
+    px(x+p*3,y+p*5,p*2,p*2,COL.dim);px(x+p*7,y+p*5,p*2,p*2,COL.dim);
+
+  }else if(t==='warthog'){
+    const c=f===0?COL.o2:COL.o1;
+    px(x+p*2,y+p*2,p*8,p*5,c);px(x+p*7,y+p,p*5,p*4,c);
+    px(x+p*8,y-p,p,p*3,COL.am);px(x+p*10,y-p,p,p*3,COL.am);
+    px(x+p*9,y+p,p,p,'#ff0000');px(x+p*8,y+p*2,p*3,p,COL.dim);
+    for(let i=0;i<4;i++)px(x+p*(2+i*2),y+p*(f===0?1:0),p,p*2,COL.o3);
+    px(x+p,y+p*2,p,p*3,f===0?COL.o3:COL.o1);
+    px(x+p*3,y+p*6,p*2,p*2,COL.dim);px(x+p*6,y+p*6,p*2,p*2,COL.dim);
+  }
+}
+
+// ── DRAW BOSS (4x size)
+function drawBoss(inv){
+  const x=Math.floor(inv.x),y=Math.floor(inv.y),f=inv.animFrame,p=P*2;
+  const hp=inv.hp,mhp=inv.maxHp;
+  const charging=inv.charging;
+
+  if(inv.type==='boss_elephant'){
+    const c=charging?'#ff2000':(f===0?COL.boss2:COL.boss3);
+    px(x+p,y+p*2,p*8,p*6,c);px(x+p*7,y,p*5,p*5,c);
+    px(x,y+p*2,p*3,f===0?p*4:p*3,COL.boss1);
+    px(x+p*10,y+p*3,p*2,p*3,c);px(x+p*(f===0?11:10),y+p*5,p*2,p*2,c);
+    px(x+p*9,y+p*4,p*3,p,'#ffdd00');
+    px(x+p*9,y+p,p*2,p*2,'#ff0000');px(x+p*11,y+p,p*2,p*2,'#ff0000');
+    px(x+p*2,y+p*7,p*2,p*3,COL.boss1);px(x+p*5,y+p*7,p*2,p*3,COL.boss1);
+    px(x+p*2,y+p,p,p*2,COL.boss1);px(x+p*4,y,p,p*2,COL.boss1);px(x+p*6,y+p,p,p*2,COL.boss1);
+    // HP bar
+    drawBossHPBar(x,y,inv);
+
+  }else if(inv.type==='boss_gorilla'){
+    const c=charging?'#ff0000':(f===0?COL.boss1:COL.boss2);
+    px(x+p*2,y+p*2,p*8,p*7,c);px(x+p*3,y,p*6,p*4,c);
+    px(x+(f===0?0:p),y+p*3,p*(f===0?3:2),p*3,COL.boss1);
+    px(x+p*(f===0?9:8),y+p*3,p*(f===0?3:2),p*3,COL.boss1);
+    px(x+(f===0?-p:0),y+p*5,p*2,p*2,'#ffdd00');px(x+p*(f===0?10:9),y+p*5,p*2,p*2,'#ffdd00');
+    px(x+p*4,y+p,p*2,p*2,'#ff0000');px(x+p*7,y+p,p*2,p*2,'#ff0000');
+    px(x+p*4,y+p*2,p*4,p,COL.dimmer);
+    px(x+p*4,y+p*8,p*2,p*2,COL.dimmer);px(x+p*6,y+p*8,p*2,p*2,COL.dimmer);
+    drawBossHPBar(x,y,inv);
+  }
+}
+
+function drawBossHPBar(x,y,inv){
+  const bw=72,bh=6;
+  px(x,y-10,bw,bh,'#330000');
+  px(x,y-10,Math.floor(bw*(inv.hp/inv.maxHp)),bh,inv.hp>2?'#00cc44':inv.hp>1?'#ffaa00':'#ff2200');
+  ctx.fillStyle='#ffaa40';ctx.font='5px "Press Start 2P"';
+  ctx.fillText(inv.type==='boss_elephant'?'ELDER':'ALPHA',x,y-12);
+}
+
+// ── UFO
+function drawUFO(ufo){
+  const x=Math.floor(ufo.x),y=Math.floor(ufo.y),p=P,f=(frame%20<10)?0:1;
+  px(x+p*3,y+p*2,p*8,p*3,COL.am);px(x+p,y+p*3,p*12,p*2,COL.o2);px(x+p*5,y,p*4,p*3,COL.o3);
+  px(x,y+p*(f===0?2:3),p*4,p*2,COL.o1);px(x+p*10,y+p*(f===0?2:3),p*4,p*2,COL.o1);
+  px(x+p*5,y+p,p,p,'#ff0000');px(x+p*8,y+p,p,p,'#ff0000');
+  px(x+p*4,y+p*4,p,p*2,COL.am);px(x+p*9,y+p*4,p,p*2,COL.am);
+  ctx.globalAlpha=.25+Math.sin(frame*.2)*.15;px(x+p*2,y+p*4,p*10,p*2,COL.o2);ctx.globalAlpha=1;
+}
+
+// ── PLAYER TANK
+function drawTank(pl){
+  if(pl.dead&&Math.floor(pl.deathTimer/4)%2===0)return;
+  const x=Math.floor(pl.x),y=Math.floor(pl.y),p=P;
+  px(x,y+p*5,p*11,p*3,pl.wheelCol);px(x+p,y+p*4,p*9,p*2,pl.bodyCol);
+  px(x+p*3,y+p*2,p*5,p*3,pl.turretCol);px(x+p*5,y,p*2,p*3,pl.turretCol);
+  px(x+p*2,y+p*2,p*7,p*2,pl.turretCol);px(x+p*4,y+p*2,p*3,p,pl.winCol);
+  px(x+p,y+p*6,p*2,p*2,pl.wheelCol);px(x+p*4,y+p*6,p*2,p*2,pl.wheelCol);px(x+p*7,y+p*6,p*2,p*2,pl.wheelCol);
+}
+
+// ── SHIELD
+function drawShield(sh){
+  sh.cells.forEach(cell=>{
+    const cx=sh.x+cell.c*sh.cw,cy=sh.y+cell.r*sh.ch;
+    px(cx,cy,sh.cw-1,sh.ch-1,cell.hp===2?COL.sh:COL.shL);
+  });
+}
+
+// ── PARTICLES
+function spawnExplosion(x,y,c1,c2,n=14){
+  for(let i=0;i<n;i++) particles.push({x,y,vx:(Math.random()-.5)*8,vy:(Math.random()-.5)*8,life:28,maxLife:28,color:Math.random()<.5?c1:c2,size:Math.random()<.3?4:2});
+}
+
+// ── ENEMY SHOOT
+function enemyShoot(){
+  const alive=invaders.filter(i=>i.alive);
+  if(!alive.length)return;
+  // bosses also shoot — fire from their position
+  const bosses=alive.filter(i=>i.isBoss);
+  bosses.forEach(b=>{
+    if(Math.random()<.3+wave*.02){
+      enemyBullets.push({x:b.x+36,y:b.y+48,vy:3+wave*.25,type:'boss',age:0});
+    }
+  });
+  const normal=alive.filter(i=>!i.isBoss);
+  if(!normal.length)return;
+  const bottom={};
+  normal.forEach(i=>{if(!bottom[i.col]||i.row>bottom[i.col].row)bottom[i.col]=i;});
+  const shooters=Object.values(bottom);
+  const s=shooters[Math.floor(Math.random()*shooters.length)];
+  enemyBullets.push({x:s.x+22,y:s.y+28,vy:2.6+wave*.3,type:Math.random()<.28?'zigzag':'straight',age:0});
+}
+
+// ── PLAYER SHOOT
+function playerShoot(pl){
+  if(pl.dead||pl.cooldown>0)return;
+  if(bullets.filter(b=>b.owner===pl.id).length>=1)return;
+  bullets.push({x:pl.x+15,y:pl.y,vy:-9,player:true,owner:pl.id,bc:pl.bc,bg:pl.bg});
+  pl.cooldown=42; // slower fire rate
+}
+
+// ── COLLISION
+function rectHit(ax,ay,aw,ah,bx,by,bw,bh){return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by;}
+
+function checkBulletShield(bx,by,bw,bh){
+  for(const sh of shields){
+    for(let i=sh.cells.length-1;i>=0;i--){
+      const cell=sh.cells[i];
+      const cx=sh.x+cell.c*sh.cw,cy=sh.y+cell.r*sh.ch;
+      if(rectHit(bx,by,bw,bh,cx,cy,sh.cw-1,sh.ch-1)){cell.hp--;if(cell.hp<=0)sh.cells.splice(i,1);return true;}
     }
   }
   return false;
 }
 
-// ── MAIN LOOP ─────────────────────────────────────────
-function startGame() {
-  document.getElementById('overlay').style.display = 'none';
-  initGame();
-  state = 'running';
+// ── GAME FLOW
+function startGame(np){document.getElementById('overlay').style.display='none';initGame(np);state='running';}
+function continueWave(){document.getElementById('overlay').style.display='none';nextWave();state='running';}
+function showOverlay(html){const ov=document.getElementById('overlay');ov.style.display='flex';ov.innerHTML=html;}
+
+function gameOver(win){
+  state=win?'win':'dead';
+  const total=scores[0]+scores[1];
+  if(total>hiScore)hiScore=total;
+  updateHUD();
+  setTimeout(()=>{
+    if(win){
+      showOverlay(`<h1>WAVE ${wave}<br>CLEARED!</h1>
+        <div class="sub">P1:${scores[0]}${numPlayers===2?' P2:'+scores[1]:''}</div>
+        <div class="btnrow"><button class="btn" onclick="continueWave()">▶ WAVE ${wave+1}</button><button class="btn" onclick="showStart()">MENU</button></div>`);
+    }else{
+      showOverlay(`<h1>OVERRUN!</h1>
+        <div class="sub">Wave:${wave} Score:${total}${total>=hiScore&&total>0?'<br>✦ HI-SCORE ✦':''}</div>
+        <div class="btnrow"><button class="btn" onclick="startGame(${numPlayers})">▶ RETRY</button><button class="btn" onclick="showStart()">MENU</button></div>`);
+    }
+  },900);
 }
 
-function continueWave() {
-  document.getElementById('overlay').style.display = 'none';
-  nextWave();
-  bullets = []; enemyBullets = []; particles = [];
-  initPlayer();
-  state = 'running';
-  document.getElementById('livesVal').textContent = lives;
+function showStart(){
+  showOverlay(`<h1>SAVANNA<br>INVADERS</h1>
+    <div class="sub">MUTANT ANIMALS INVADE!</div>
+    <div class="btnrow"><button class="btn" onclick="startGame(1)">▶ 1 PLAYER</button><button class="btn p2" onclick="startGame(2)">▶▶ 2 PLAYERS</button></div>
+    <div class="sub" style="margin-top:12px">P1(RED):A/D MOVE &nbsp; W=FIRE<br>P2(BLUE):←→ MOVE &nbsp; SPACE=FIRE</div>`);
 }
 
-function gameOver(win) {
-  state = win ? 'win' : 'dead';
-  if (score > hiScore) hiScore = score;
-  document.getElementById('hiVal').textContent = hiScore;
-  setTimeout(() => {
-    const ov = document.getElementById('overlay');
-    ov.style.display = 'flex';
-    ov.innerHTML = win
-      ? `<h1>WAVE ${wave}<br>CLEARED!</h1>
-         <div class="sub">Score: ${score}</div>
-         <button class="btn" onclick="continueWave()">▶ WAVE ${wave+1}</button>`
-      : `<h1>OVERRUN!</h1>
-         <div class="sub">The savanna has fallen...<br>Score: ${score} &nbsp; Wave: ${wave}</div>
-         ${score>=hiScore&&score>0?'<div class="sub" style="color:#ffaa40">✦ NEW HI-SCORE ✦</div>':''}
-         <button class="btn" onclick="startGame()">▶ TRY AGAIN</button>`;
-  }, 900);
-}
-
-function loop() {
+// ── MAIN LOOP
+function loop(){
   requestAnimationFrame(loop);
   frame++;
-  ctx.fillStyle = COL.bg;
-  ctx.fillRect(0, 0, W, H);
+  if(bg)drawBG();else{ctx.fillStyle='#1e0e02';ctx.fillRect(0,0,W,H);}
 
-  // Scanlines + gradient atmosphere
-  const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, '#200800');
-  grad.addColorStop(0.5, '#0a0000');
-  grad.addColorStop(1, '#1a0400');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
+  if(state==='running'){
 
-  // Scanlines
-  ctx.fillStyle = COL.scanline;
-  for (let sy = 0; sy < H; sy += 3) ctx.fillRect(0, sy, W, 1);
-
-  if (state === 'running') {
-    // ── MOVE PLAYER ──
-    if (!player.dead) {
-      if (keys['ArrowLeft']  || keys['KeyA']) player.x = Math.max(0, player.x - 4);
-      if (keys['ArrowRight'] || keys['KeyD']) player.x = Math.min(W - 36, player.x + 4);
-      if (player.cooldown > 0) player.cooldown--;
-    } else {
-      player.deathTimer++;
-      if (player.deathTimer > 90) {
-        lives--;
-        document.getElementById('livesVal').textContent = lives;
-        if (lives <= 0) { gameOver(false); return; }
-        player.dead = false; player.deathTimer = 0;
-        enemyBullets = [];
+    // Move players + auto-fire on held key
+    players.forEach(pl=>{
+      if(!pl.dead){
+        if(keys[pl.leftKey])pl.x=Math.max(0,pl.x-4);
+        if(keys[pl.rightKey])pl.x=Math.min(W-36,pl.x+4);
+        if(pl.cooldown>0)pl.cooldown--;
+        // Auto-fire: continuously shoot while key held
+        if(keys[pl.shootKey])playerShoot(pl);
+      }else{
+        pl.deathTimer++;
+        if(pl.deathTimer>90){
+          lives[pl.id]--;updateHUD();
+          if(lives[pl.id]<=0){
+            if(numPlayers===1||(numPlayers===2&&players.every(p=>lives[p.id]<=0))){gameOver(false);return;}
+          }else{pl.dead=false;pl.deathTimer=0;enemyBullets=[];}
+        }
       }
-    }
+    });
 
-    // ── MOVE INVADERS ──
+    // Count alive normals vs bosses
+    const aliveNormal=invaders.filter(i=>i.alive&&!i.isBoss);
+    const aliveBosses=invaders.filter(i=>i.alive&&i.isBoss);
+    const aliveAll=invaders.filter(i=>i.alive);
+    const totalNormal=invaders.filter(i=>!i.isBoss).length;
+
+    // Boss charging: if boss is last one(s) alive, charge fast
+    aliveBosses.forEach(boss=>{
+      if(aliveNormal.length===0&&aliveBosses.length<=2){
+        boss.charging=true;
+        boss.chargeSpeed=boss.chargeSpeed||0;
+        boss.chargeSpeed=Math.min(8,boss.chargeSpeed+0.04);
+        boss.y+=boss.chargeSpeed;
+        boss.animTimer++;if(boss.animTimer>3){boss.animFrame=(boss.animFrame+1)%2;boss.animTimer=0;}
+        if(boss.y+80>=players[0].y){gameOver(false);return;}
+      }
+    });
+
+    // Move normal invader grid
     invaderMoveTimer++;
-    const aliveCount = invaders.filter(i=>i.alive).length;
-    const dynamicInterval = Math.max(5, invaderMoveInterval - Math.floor((ROWS*COLS - aliveCount) * 0.6));
-    if (invaderMoveTimer >= dynamicInterval) {
-      invaderMoveTimer = 0;
-      let edgeHit = false;
-      invaders.forEach(inv => {
-        if (!inv.alive) return;
-        inv.x += invaderDir * 10;
-        if (inv.x > W - 55 || inv.x < 10) edgeHit = true;
+    const speedFraction=aliveNormal.length>0?Math.max(0.05,aliveNormal.length/Math.max(1,totalNormal)):1;
+    // Last 5-6: hyper speed
+    const lastFew=aliveNormal.length>0&&aliveNormal.length<=6;
+    const dynInterval=lastFew?Math.max(2,3):Math.max(3,Math.floor(invaderMoveInterval*speedFraction));
+
+    if(invaderMoveTimer>=dynInterval&&aliveNormal.length>0){
+      invaderMoveTimer=0;
+      let edgeHit=false;
+      const step=lastFew?18:10;
+      aliveNormal.forEach(inv=>{
+        inv.x+=invaderDir*step;
+        if(inv.x>W-52||inv.x<6)edgeHit=true;
         inv.animTimer++;
-        if (inv.animTimer > 8) { inv.animFrame = (inv.animFrame+1)%2; inv.animTimer=0; }
+        if(inv.animTimer>4){inv.animFrame=(inv.animFrame+1)%2;inv.animTimer=0;}
       });
-      if (edgeHit) {
-        invaderDir *= -1;
-        invaders.forEach(inv => { if (inv.alive) inv.y += 16; });
-        invaderDropTimer++;
+      if(edgeHit){
+        invaderDir*=-1;
+        aliveNormal.forEach(inv=>{inv.y+=lastFew?20:14;});
       }
     }
 
-    // Check invaders reached bottom
-    invaders.forEach(inv => {
-      if (inv.alive && inv.y + 36 >= player.y) { gameOver(false); }
+    // Invaders reach player
+    aliveAll.forEach(inv=>{if(inv.y+40>=players[0].y&&!inv.isBoss)gameOver(false);});
+
+    // Invaders crush shield cells they overlap as they march through
+    aliveAll.forEach(inv=>{
+      const iw=inv.isBoss?72:48,ih=inv.isBoss?60:36;
+      shields.forEach(sh=>{
+        for(let i=sh.cells.length-1;i>=0;i--){
+          const cell=sh.cells[i];
+          const cx=sh.x+cell.c*sh.cw,cy=sh.y+cell.r*sh.ch;
+          if(rectHit(inv.x,inv.y,iw,ih,cx,cy,sh.cw,sh.ch)){
+            sh.cells.splice(i,1);
+          }
+        }
+      });
     });
 
-    // ── UFO ──
+    // UFO
     ufoTimer++;
-    if (!ufoBoss && ufoTimer > 600 + Math.random()*400) {
-      ufoBoss = { x: -60, y: 28, vx: 2 + wave*0.3, score: 150 };
-      ufoTimer = 0;
-    }
-    if (ufoBoss) {
-      ufoBoss.x += ufoBoss.vx;
-      if (ufoBoss.x > W + 60) ufoBoss = null;
-    }
+    if(!ufoBoss&&ufoTimer>480+Math.random()*400){ufoBoss={x:-60,y:20,vx:2+wave*.2,score:200};ufoTimer=0;}
+    if(ufoBoss){ufoBoss.x+=ufoBoss.vx;if(ufoBoss.x>W+70)ufoBoss=null;}
 
-    // ── ENEMY SHOOT ──
+    // Enemy shoot
     enemyShootTimer++;
-    const shootInterval = Math.max(20, BASE_SHOOT_INTERVAL - wave * 6 - Math.floor((ROWS*COLS-aliveCount)*0.5));
-    if (enemyShootTimer >= shootInterval) {
-      enemyShootTimer = 0;
-      enemyShoot();
-      if (aliveCount < 10) enemyShoot(); // more bullets when few left
-    }
+    const shootInterval=Math.max(55,140-wave*9-Math.floor((totalNormal-aliveNormal.length)*.9));
+    if(enemyShootTimer>=shootInterval){enemyShootTimer=0;enemyShoot();if(aliveNormal.length<8)enemyShoot();}
 
-    // ── MOVE BULLETS ──
-    bullets = bullets.filter(b => {
-      b.x += b.vx || 0;
-      b.y += b.vy;
-      return b.y > -10 && b.y < H+10;
-    });
-    enemyBullets = enemyBullets.filter(b => {
+    // Move bullets
+    bullets=bullets.filter(b=>{b.y+=b.vy;return b.y>-10&&b.y<H+10;});
+    enemyBullets=enemyBullets.filter(b=>{
       b.age++;
-      if (b.type === 'zigzag') b.x += Math.sin(b.age * 0.3) * 2.5;
-      b.y += b.vy;
-      return b.y < H + 10;
+      if(b.type==='zigzag')b.x+=Math.sin(b.age*.28)*2.2;
+      b.y+=b.vy;return b.y<H+10;
     });
 
-    // ── BULLET vs SHIELD ──
-    bullets = bullets.filter(b => {
-      if (!b.player) return true;
-      if (checkBulletShield(b.x-2, b.y-4, 4, 8)) {
-        spawnExplosion(b.x, b.y, COL.shield, COL.orange1, 6);
-        return false;
-      }
+    // Bullets vs shields
+    bullets=bullets.filter(b=>{
+      if(!b.player)return true;
+      if(checkBulletShield(b.x-2,b.y-4,4,8)){spawnExplosion(b.x,b.y,COL.sh,COL.o1,5);return false;}
       return true;
     });
-    enemyBullets = enemyBullets.filter(b => {
-      if (checkBulletShield(b.x-2, b.y-4, 4, 8)) {
-        spawnExplosion(b.x, b.y, COL.shieldDim, COL.orange1, 4);
-        return false;
-      }
+    enemyBullets=enemyBullets.filter(b=>{
+      if(checkBulletShield(b.x-2,b.y-4,4,8)){spawnExplosion(b.x,b.y,COL.shM,COL.o1,4);return false;}
       return true;
     });
 
-    // ── BULLET vs INVADER ──
-    bullets = bullets.filter(b => {
-      if (!b.player) return true;
-      for (const inv of invaders) {
-        if (!inv.alive) continue;
-        if (rectHit(b.x-3, b.y-6, 6, 10, inv.x, inv.y, 46, 32)) {
-          inv.alive = false;
-          score += inv.score;
-          document.getElementById('scoreVal').textContent = score;
-          spawnExplosion(inv.x+22, inv.y+16, COL.orange2, COL.amber, 18);
-          if (!invaders.some(i=>i.alive)) { setTimeout(()=>gameOver(true), 1200); }
+    // Bullets vs invaders (including bosses)
+    bullets=bullets.filter(b=>{
+      if(!b.player)return true;
+      for(const inv of invaders){
+        if(!inv.alive)continue;
+        const hitW=inv.isBoss?72:48,hitH=inv.isBoss?60:36;
+        if(rectHit(b.x-3,b.y-6,6,10,inv.x,inv.y,hitW,hitH)){
+          inv.hp--;
+          if(inv.hp<=0){
+            inv.alive=false;scores[b.owner]+=inv.score;updateHUD();
+            spawnExplosion(inv.x+(inv.isBoss?36:22),inv.y+(inv.isBoss?30:16),COL.o2,COL.am,inv.isBoss?32:18);
+          }else{
+            // Boss hit but not dead — flash
+            spawnExplosion(inv.x+36,inv.y+30,COL.boss1,COL.boss3,10);
+            scores[b.owner]+=Math.floor(inv.score/inv.maxHp);updateHUD();
+          }
+          if(!invaders.some(i=>i.alive)){setTimeout(()=>gameOver(true),1200);}
           return false;
         }
       }
-      // vs UFO
-      if (ufoBoss && rectHit(b.x-3,b.y-6,6,10, ufoBoss.x,ufoBoss.y,54,24)) {
-        score += ufoBoss.score;
-        document.getElementById('scoreVal').textContent = score;
-        spawnExplosion(ufoBoss.x+27, ufoBoss.y+12, COL.amber, '#ffffff', 24);
-        ufoBoss = null;
-        return false;
+      if(ufoBoss&&rectHit(b.x-3,b.y-6,6,10,ufoBoss.x,ufoBoss.y,54,24)){
+        scores[b.owner]+=ufoBoss.score;updateHUD();
+        spawnExplosion(ufoBoss.x+27,ufoBoss.y+12,COL.am,'#ffffff',24);
+        ufoBoss=null;return false;
       }
       return true;
     });
 
-    // ── ENEMY BULLET vs PLAYER ──
-    if (!player.dead) {
-      enemyBullets = enemyBullets.filter(b => {
-        if (rectHit(b.x-3, b.y-6, 6, 12, player.x, player.y, 36, 28)) {
-          player.dead = true; player.deathTimer = 0;
-          spawnExplosion(player.x+18, player.y+14, COL.orange1, COL.amber, 28);
+    // Enemy bullets vs players
+    players.forEach(pl=>{
+      if(pl.dead)return;
+      enemyBullets=enemyBullets.filter(b=>{
+        if(rectHit(b.x-3,b.y-6,6,12,pl.x,pl.y,36,28)){
+          pl.dead=true;pl.deathTimer=0;
+          spawnExplosion(pl.x+18,pl.y+14,COL.o1,COL.am,28);
           return false;
         }
         return true;
       });
-    }
-
-    // ── PARTICLES ──
-    particles.forEach(pt => {
-      pt.x += pt.vx; pt.y += pt.vy;
-      pt.vx *= 0.93; pt.vy *= 0.93;
-      pt.life--;
-      ctx.globalAlpha = pt.life / pt.maxLife;
-      ctx.fillStyle = pt.color;
-      ctx.fillRect(Math.floor(pt.x), Math.floor(pt.y), pt.size, pt.size);
     });
-    ctx.globalAlpha = 1;
-    particles = particles.filter(p => p.life > 0);
+
+    // Particles
+    particles.forEach(pt=>{pt.x+=pt.vx;pt.y+=pt.vy;pt.vx*=.93;pt.vy*=.93;pt.life--;ctx.globalAlpha=pt.life/pt.maxLife;ctx.fillStyle=pt.color;ctx.fillRect(Math.floor(pt.x),Math.floor(pt.y),pt.size,pt.size);});
+    ctx.globalAlpha=1;
+    particles=particles.filter(p=>p.life>0);
   }
 
-  // ── AERIAL SAVANNA LANDSCAPE ──────────────────────────
-  // Sits between shields (H-110) and player (H-52), roughly H-135 to H-52
-  const LAND_Y = H - 138;
-  const LAND_H = 86;
-  const scroll = (frame * 0.8) | 0;
-
-  // Base ground — dry savanna earth, aerial top-down view
-  ctx.fillStyle = '#2a1400';
-  ctx.fillRect(0, LAND_Y, W, LAND_H);
-
-  // Earthy terrain patches — scrolling
-  const terrainColors = ['#3a1c06','#4a2408','#2e1604','#382008'];
-  for (let i = 0; i < 18; i++) {
-    const tx = ((i * 97 - scroll * 0.6) % (W + 60)) - 30;
-    const ty = LAND_Y + 4 + (i * 37) % (LAND_H - 12);
-    ctx.fillStyle = terrainColors[i % terrainColors.length];
-    ctx.fillRect(Math.floor(tx), Math.floor(ty), 28 + (i*13)%22, 6 + (i*7)%8);
-  }
-
-  // Dry grass / scrub patches (yellow-brown top-down blobs)
-  for (let i = 0; i < 22; i++) {
-    const gx = ((i * 71 + 15 - scroll * 0.9) % (W + 40)) - 20;
-    const gy = LAND_Y + 8 + (i * 29) % (LAND_H - 18);
-    const gs = 4 + (i * 11) % 8;
-    ctx.fillStyle = i % 3 === 0 ? '#7a5a10' : '#5a3c08';
-    ctx.fillRect(Math.floor(gx), Math.floor(gy), gs, gs / 2 | 0 || 2);
-    ctx.fillRect(Math.floor(gx + 2), Math.floor(gy - 2), gs - 2, 2);
-  }
-
-  // Acacia trees — top-down flat canopy silhouettes, scrolling slowly
-  const acaciaPositions = [
-    { ox:0,   oy:12, r:9  },
-    { ox:110, oy:28, r:7  },
-    { ox:220, oy:8,  r:11 },
-    { ox:310, oy:38, r:8  },
-    { ox:430, oy:18, r:10 },
-    { ox:530, oy:32, r:7  },
-    { ox:620, oy:10, r:9  },
-    { ox:55,  oy:50, r:6  },
-    { ox:175, oy:58, r:8  },
-    { ox:370, oy:55, r:7  },
-    { ox:480, oy:60, r:10 },
-    { ox:670, oy:50, r:6  },
-  ];
-  acaciaPositions.forEach((a, i) => {
-    const ax = ((a.ox - scroll * (0.5 + i * 0.03)) % (W + 40) + W + 40) % (W + 40) - 20;
-    const ay = LAND_Y + a.oy;
-    const r = a.r;
-    // shadow beneath canopy
-    ctx.globalAlpha = 0.35;
-    ctx.fillStyle = '#0a0400';
-    ctx.fillRect(Math.floor(ax - r + 2), Math.floor(ay - r/2 + 2), r*2, r);
-    ctx.globalAlpha = 1;
-    // canopy — flat circle approximated with rects (pixel art style)
-    ctx.fillStyle = '#1a3808';
-    ctx.fillRect(Math.floor(ax - r), Math.floor(ay - r/2), r*2, r);
-    ctx.fillRect(Math.floor(ax - r/2), Math.floor(ay - r*0.75), r, r*1.4);
-    // highlight
-    ctx.fillStyle = '#254a0a';
-    ctx.fillRect(Math.floor(ax - r/2), Math.floor(ay - r/2), r/2|0, r/3|0);
-  });
-
-  // River/water stripe — thin winding path
-  ctx.globalAlpha = 0.55;
-  ctx.fillStyle = '#1a3050';
-  for (let rx = 0; rx < W; rx += 4) {
-    const wy = LAND_Y + 44 + Math.floor(Math.sin((rx + scroll * 0.4) * 0.025) * 10);
-    ctx.fillRect(rx, wy, 4, 5);
-  }
-  // water shimmer
-  ctx.fillStyle = '#2a5080';
-  for (let rx = 0; rx < W; rx += 12) {
-    const wy = LAND_Y + 44 + Math.floor(Math.sin((rx + scroll * 0.4) * 0.025) * 10);
-    ctx.fillRect(rx + ((frame*2)%12), wy + 1, 4, 2);
-  }
-  ctx.globalAlpha = 1;
-
-  // Dirt road running horizontally across the land
-  ctx.fillStyle = '#4a2c0a';
-  ctx.fillRect(0, LAND_Y + 68, W, 7);
-  ctx.fillStyle = '#382008';
-  // tyre track dashes
-  for (let dx = (-(scroll*1.2)|0) % 28; dx < W; dx += 28) {
-    ctx.fillRect(Math.floor(dx), LAND_Y + 70, 14, 2);
-  }
-
-  // Top and bottom edge of land strip — clear borders
-  ctx.fillStyle = '#1a0800';
-  ctx.fillRect(0, LAND_Y, W, 3);
-  ctx.fillRect(0, LAND_Y + LAND_H - 3, W, 3);
-
-  // ── DRAW GAME ELEMENTS ──────────────────────────────
-  // Shields
+  // ── DRAW
   shields.forEach(drawShield);
+  invaders.forEach(inv=>{if(inv.alive)drawInvader(inv);});
+  if(ufoBoss)drawUFO(ufoBoss);
+  players.forEach(drawTank);
 
-  // Invaders
-  invaders.forEach(inv => { if (inv.alive) drawInvader(inv); });
+  bullets.forEach(b=>{
+    if(!b.player)return;
+    ctx.fillStyle=b.bc;ctx.fillRect(Math.floor(b.x)-1,Math.floor(b.y)-6,3,12);
+    ctx.globalAlpha=.4;ctx.fillStyle=b.bg;ctx.fillRect(Math.floor(b.x)-2,Math.floor(b.y)-6,5,12);ctx.globalAlpha=1;
+  });
 
-  // UFO
-  if (ufoBoss) drawUFO(ufoBoss);
-
-  // Player
-  drawPlayer();
-
-  // Player bullets
-  bullets.forEach(b => {
-    if (b.player) {
-      // bright green laser
-      ctx.fillStyle = COL.green;
-      ctx.fillRect(Math.floor(b.x)-1, Math.floor(b.y)-6, 3, 12);
-      ctx.globalAlpha = 0.4;
-      ctx.fillStyle = '#80ffaa';
-      ctx.fillRect(Math.floor(b.x)-2, Math.floor(b.y)-6, 5, 12);
-      ctx.globalAlpha = 1;
+  enemyBullets.forEach(b=>{
+    const isB=b.type==='boss';
+    ctx.fillStyle=isB?'#ff4400':COL.eb;
+    if(b.type==='zigzag'){
+      ctx.fillRect(Math.floor(b.x)-1,Math.floor(b.y)-4,3,4);ctx.fillRect(Math.floor(b.x)+1,Math.floor(b.y),3,4);
+      ctx.globalAlpha=.5;ctx.fillStyle=COL.ebB;ctx.fillRect(Math.floor(b.x)-2,Math.floor(b.y)-4,5,8);ctx.globalAlpha=1;
+    }else if(isB){
+      ctx.fillRect(Math.floor(b.x)-2,Math.floor(b.y)-8,5,16);
+      ctx.globalAlpha=.5;ctx.fillStyle='#ff8800';ctx.fillRect(Math.floor(b.x)-4,Math.floor(b.y)-8,9,16);ctx.globalAlpha=1;
+    }else{
+      ctx.fillRect(Math.floor(b.x)-1,Math.floor(b.y)-6,3,12);
+      ctx.globalAlpha=.4;ctx.fillStyle=COL.ebB;ctx.fillRect(Math.floor(b.x)-2,Math.floor(b.y)-6,5,12);ctx.globalAlpha=1;
     }
   });
 
-  // Enemy bullets
-  enemyBullets.forEach(b => {
-    ctx.fillStyle = COL.red;
-    if (b.type === 'zigzag') {
-      // zigzag bolt shape
-      ctx.fillRect(Math.floor(b.x)-1, Math.floor(b.y)-4, 3, 4);
-      ctx.fillRect(Math.floor(b.x)+1, Math.floor(b.y), 3, 4);
-      ctx.globalAlpha = 0.5;
-      ctx.fillStyle = '#ff6600';
-      ctx.fillRect(Math.floor(b.x)-2, Math.floor(b.y)-4, 5, 8);
-      ctx.globalAlpha = 1;
-    } else {
-      ctx.fillRect(Math.floor(b.x)-1, Math.floor(b.y)-6, 3, 12);
-      ctx.globalAlpha = 0.4;
-      ctx.fillStyle = '#ff4400';
-      ctx.fillRect(Math.floor(b.x)-2, Math.floor(b.y)-6, 5, 12);
-      ctx.globalAlpha = 1;
-    }
-  });
+  // Bottom HUD
+  ctx.fillStyle='#080000';ctx.fillRect(0,H-22,W,22);
+  ctx.fillStyle=COL.dim;ctx.fillRect(0,H-23,W,1);
+  ctx.fillStyle=COL.o2;ctx.font='7px "Press Start 2P"';ctx.fillText(`WAVE ${wave}`,W/2-24,H-8);
 
-  // Wave counter - bright and readable
-  ctx.fillStyle = COL.orange2;
-  ctx.font = '7px "Press Start 2P"';
-  ctx.fillText(`WAVE ${wave}`, W/2 - 24, H - 8);
-
-  // Player lives icons bottom-left
-  for (let i = 0; i < lives; i++) {
-    const lx = 8 + i * 22, ly = H - 22;
-    px(lx+4, ly+2, 4, 3, COL.orange1);
-    px(lx+2, ly+4, 8, 4, COL.orange2);
+  for(let i=0;i<Math.max(0,lives[0]);i++){const lx=8+i*20,ly=H-18;px(lx+3,ly+1,4,3,COL.o1);px(lx,ly+3,10,5,COL.o2);}
+  if(numPlayers===2){
+    for(let i=0;i<Math.max(0,lives[1]);i++){const lx=W-28-i*20,ly=H-18;px(lx+3,ly+1,4,3,'#0080b0');px(lx,ly+3,10,5,'#00a0d0');}
   }
 }
 
-// ── CONTROLS ──────────────────────────────────────────
-const keys = {};
-document.addEventListener('keydown', e => {
-  keys[e.code] = true;
-  if (e.code === 'Space') {
-    e.preventDefault();
-    if (state === 'running') playerShoot();
-  }
+// ── CONTROLS
+const keys={};
+document.addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  // Prevent space/W from scrolling page
+  if(e.code==='Space'||e.code==='KeyW') e.preventDefault();
 });
-document.addEventListener('keyup', e => { keys[e.code] = false; });
+document.addEventListener('keyup',e=>{keys[e.code]=false;});
+canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state==='running'){const p1=players&&players.find(p=>p.id===0);if(p1)playerShoot(p1);}},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();const rect=canvas.getBoundingClientRect();const tx=(e.touches[0].clientX-rect.left)/rect.width*W;const p1=players&&players.find(p=>p.id===0);if(p1)p1.x=Math.max(0,Math.min(W-36,tx-18));},{passive:false});
 
-// Mobile tap = shoot
-canvas.addEventListener('touchstart', e => {
-  e.preventDefault();
-  if (state === 'running') playerShoot();
-}, { passive: false });
-
-// Mobile swipe = move (track touch position)
-let touchX = null;
-canvas.addEventListener('touchmove', e => {
-  e.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  const tx = (e.touches[0].clientX - rect.left) / rect.width * W;
-  player.x = Math.max(0, Math.min(W-36, tx - 18));
-}, { passive: false });
-
-requestAnimationFrame(loop);
+buildBG();requestAnimationFrame(loop);
 </script>
 </body>
 </html>
