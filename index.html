@@ -39,7 +39,7 @@
       <button class="btn" onclick="startGame(1)">▶ 1 PLAYER</button>
       <button class="btn p2" onclick="startGame(2)">▶▶ 2 PLAYERS</button>
     </div>
-    <div class="sub" style="margin-top:12px">P1(RED): A/D MOVE &nbsp; W=FIRE<br>P2(BLUE): ←→ MOVE &nbsp; SPACE=FIRE<br>MOBILE: DRAG=MOVE &nbsp; TAP=FIRE</div>
+    <div class="sub" style="margin-top:12px">P1(GREEN): A/D MOVE &nbsp; W=FIRE<br>P2(BLUE): ←→ MOVE &nbsp; ↑=FIRE<br>MOBILE: DRAG=MOVE &nbsp; TAP=FIRE</div>
   </div>
 </div>
 <script>
@@ -107,7 +107,7 @@ function initPlayers(){
   // P1 = GREEN tank, left side, W/A/D controls
   const p1={...base,id:0,shootKey:'KeyW',leftKey:'KeyA',rightKey:'KeyD',bc:COL.p1b,bg:COL.p1g,bodyCol:'#20c030',turretCol:'#30e848',winCol:'#ccffcc',wheelCol:'#0a3010'};
   // P2 = BLUE tank, right side, arrows+space controls
-  const p2={...base,id:1,shootKey:'Space',leftKey:'ArrowLeft',rightKey:'ArrowRight',bc:COL.p2b,bg:COL.p2g,bodyCol:'#0080b0',turretCol:'#00a0d0',winCol:'#80ffff',wheelCol:'#002030'};
+  const p2={...base,id:1,shootKey:'ArrowUp',leftKey:'ArrowLeft',rightKey:'ArrowRight',bc:COL.p2b,bg:COL.p2g,bodyCol:'#0080b0',turretCol:'#00a0d0',winCol:'#80ffff',wheelCol:'#002030'};
   if(numPlayers===1){p1.x=W/2-16;p1.y=H-52;players.push(p1);}
   else{p1.x=W/4-16;p1.y=H-52;p2.x=W*3/4-16;p2.y=H-52;players.push(p1,p2);}
 }
@@ -515,7 +515,7 @@ function showStart(){
   showOverlay(`<h1>SAVANNA<br>INVADERS</h1>
     <div class="sub">MUTANT ANIMALS INVADE!</div>
     <div class="btnrow"><button class="btn" onclick="startGame(1)">▶ 1 PLAYER</button><button class="btn p2" onclick="startGame(2)">▶▶ 2 PLAYERS</button></div>
-    <div class="sub" style="margin-top:12px">P1(RED):A/D MOVE &nbsp; W=FIRE<br>P2(BLUE):←→ MOVE &nbsp; SPACE=FIRE</div>`);
+    <div class="sub" style="margin-top:12px">P1(GREEN):A/D MOVE &nbsp; W=FIRE<br>P2(BLUE):←→ MOVE &nbsp; ↑=FIRE</div>`);
 }
 
 // ── MAIN LOOP
@@ -751,7 +751,7 @@ const keys={};
 document.addEventListener('keydown',e=>{
   keys[e.code]=true;
   // Prevent space/W from scrolling page
-  if(e.code==='Space'||e.code==='KeyW') e.preventDefault();
+  if(e.code==='Space'||e.code==='KeyW'||e.code==='ArrowUp') e.preventDefault();
 });
 document.addEventListener('keyup',e=>{keys[e.code]=false;});
 canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state==='running'){const p1=players&&players.find(p=>p.id===0);if(p1)playerShoot(p1);}},{passive:false});
