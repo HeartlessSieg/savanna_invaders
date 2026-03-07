@@ -103,7 +103,7 @@ function drawBG(){
 // ── PLAYERS
 function initPlayers(){
   players=[];
-  const base={w:33,h:22,cooldown:0,dead:false,deathTimer:0};
+  const base={w:33,h:22,cooldown:0,dead:false,deathTimer:0,lifeLost:false};
   // P1 = GREEN tank, left side, W/A/D controls
   const p1={...base,id:0,shootKey:'KeyW',leftKey:'KeyA',rightKey:'KeyD',bc:COL.p1b,bg:COL.p1g,bodyCol:'#20c030',turretCol:'#30e848',winCol:'#ccffcc',wheelCol:'#0a3010'};
   // P2 = BLUE tank, right side, arrows+space controls
@@ -240,7 +240,7 @@ function initGame(np){
 }
 
 function nextWave(){
-  wave++;bullets=[];enemyBullets=[];particles=[];
+  wave++;bullets=[];enemyBullets=[];particles=[];scorePopups=[];
   invaderDir=1;invaderMoveTimer=0;
   invaderMoveInterval=Math.max(8,40-wave*3);
   ufoBoss=null;ufoTimer=0;enemyShootTimer=0;
@@ -249,7 +249,14 @@ function nextWave(){
     lives[0]++;
     if(numPlayers===2) lives[1]++;
   }
-  initPlayers();initInvaders();initShields();updateHUD();
+  // Reset player positions & clear any mid-death state — do NOT re-create player objects
+  // so we don't accidentally skip a pending life deduction
+  players.forEach(pl=>{
+    pl.dead=false;pl.deathTimer=0;pl.lifeLost=false;pl.cooldown=0;
+    pl.x=numPlayers===1?(W/2-16):(pl.id===0?W/4-16:W*3/4-16);
+    pl.y=H-52;
+  });
+  initInvaders();initShields();updateHUD();
 }
 
 function updateHUD(){
@@ -527,13 +534,19 @@ function loop(){
         if(pl.cooldown>0)pl.cooldown--;
         // Auto-fire: continuously shoot while key held
         if(keys[pl.shootKey])playerShoot(pl);
-      }else{
+      }else if(!pl.lifeLost){
+        // lifeLost flag prevents double-docking
         pl.deathTimer++;
         if(pl.deathTimer>90){
-          lives[pl.id]--;updateHUD();
+          pl.lifeLost=true;
+          lives[pl.id]=Math.max(0,lives[pl.id]-1);
+          updateHUD();
           if(lives[pl.id]<=0){
-            if(numPlayers===1||(numPlayers===2&&players.every(p=>lives[p.id]<=0))){gameOver(false);return;}
-          }else{pl.dead=false;pl.deathTimer=0;enemyBullets=[];}
+            const allDead=numPlayers===1||players.every(p=>lives[p.id]<=0);
+            if(allDead&&state==='running'){gameOver(false);return;}
+          }else{
+            pl.dead=false;pl.deathTimer=0;pl.lifeLost=false;enemyBullets=[];
+          }
         }
       }
     });
