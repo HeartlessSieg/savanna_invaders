@@ -39,7 +39,7 @@
       <button class="btn" onclick="startGame(1)">▶ 1 PLAYER</button>
       <button class="btn p2" onclick="startGame(2)">▶▶ 2 PLAYERS</button>
     </div>
-    <div class="sub" style="margin-top:12px">P1(GREEN): A/D MOVE &nbsp; W=FIRE<br>P2(BLUE): ←→ MOVE &nbsp; ↑=FIRE<br>MOBILE: DRAG=MOVE &nbsp; TAP=FIRE</div>
+    <div class="sub" style="margin-top:12px">P1(GREEN): A/D or ←→ MOVE &nbsp; W or ↑=FIRE<br>P2(BLUE): ←→ MOVE &nbsp; ↑=FIRE<br>MOBILE: DRAG=MOVE &nbsp; TAP=FIRE</div>
   </div>
 </div>
 <script>
@@ -515,7 +515,7 @@ function showStart(){
   showOverlay(`<h1>SAVANNA<br>INVADERS</h1>
     <div class="sub">MUTANT ANIMALS INVADE!</div>
     <div class="btnrow"><button class="btn" onclick="startGame(1)">▶ 1 PLAYER</button><button class="btn p2" onclick="startGame(2)">▶▶ 2 PLAYERS</button></div>
-    <div class="sub" style="margin-top:12px">P1(GREEN):A/D MOVE &nbsp; W=FIRE<br>P2(BLUE):←→ MOVE &nbsp; ↑=FIRE</div>`);
+    <div class="sub" style="margin-top:12px">P1(GREEN):A/D or ←→ MOVE &nbsp; W or ↑=FIRE<br>P2(BLUE):←→ MOVE &nbsp; ↑=FIRE</div>`);
 }
 
 // ── MAIN LOOP
@@ -529,11 +529,16 @@ function loop(){
     // Move players + auto-fire on held key
     players.forEach(pl=>{
       if(!pl.dead){
-        if(keys[pl.leftKey])pl.x=Math.max(0,pl.x-4);
-        if(keys[pl.rightKey])pl.x=Math.min(W-36,pl.x+4);
+        // P1 (id===0) accepts WASD OR arrow keys in 1-player mode
+        const isP1solo = pl.id===0 && numPlayers===1;
+        const goLeft  = keys[pl.leftKey]  || (isP1solo && keys['ArrowLeft']);
+        const goRight = keys[pl.rightKey] || (isP1solo && keys['ArrowRight']);
+        const goShoot = keys[pl.shootKey] || (isP1solo && keys['ArrowUp']);
+        if(goLeft)  pl.x=Math.max(0,pl.x-4);
+        if(goRight) pl.x=Math.min(W-36,pl.x+4);
         if(pl.cooldown>0)pl.cooldown--;
         // Auto-fire: continuously shoot while key held
-        if(keys[pl.shootKey])playerShoot(pl);
+        if(goShoot)playerShoot(pl);
       }else if(!pl.lifeLost){
         // lifeLost flag prevents double-docking
         pl.deathTimer++;
@@ -751,7 +756,7 @@ const keys={};
 document.addEventListener('keydown',e=>{
   keys[e.code]=true;
   // Prevent space/W from scrolling page
-  if(e.code==='Space'||e.code==='KeyW'||e.code==='ArrowUp') e.preventDefault();
+  if(e.code==='Space'||e.code==='KeyW'||e.code==='ArrowUp'||e.code==='ArrowLeft'||e.code==='ArrowRight') e.preventDefault();
 });
 document.addEventListener('keyup',e=>{keys[e.code]=false;});
 canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state==='running'){const p1=players&&players.find(p=>p.id===0);if(p1)playerShoot(p1);}},{passive:false});
