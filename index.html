@@ -22,6 +22,54 @@
   .btn:active{transform:translate(2px,2px);box-shadow:2px 2px #601000;}
   .btn.p2{background:#005580;box-shadow:4px 4px #002030;}
   .btn.p2:hover{background:#0080b0;}
+
+  /* ── MOBILE CONTROLS ── */
+  #mobileControls{
+    display:none;
+    width:min(840px,100vw);
+    background:#080000;
+    border:2px solid #c83000;
+    border-top:none;
+    padding:6px 8px;
+    box-sizing:border-box;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+  .mc-row{display:flex;justify-content:space-between;align-items:center;gap:6px;}
+  .mc-player{display:flex;align-items:center;gap:6px;flex:1;}
+  .mc-player.p2{flex-direction:row-reverse;}
+  .mc-label{color:#ff6010;font-family:'Press Start 2P',monospace;font-size:clamp(5px,1.5vw,8px);white-space:nowrap;}
+  .mc-btn{
+    background:#1a0800;
+    border:2px solid #c83000;
+    border-radius:8px;
+    color:#ff8030;
+    font-family:'Press Start 2P',monospace;
+    font-size:clamp(10px,4vw,22px);
+    cursor:pointer;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    display:flex;align-items:center;justify-content:center;
+    transition:background 0.08s,transform 0.06s;
+    padding:0;
+    flex-shrink:0;
+  }
+  .mc-btn:active,.mc-btn.pressed{background:#c83000;transform:scale(0.92);}
+  .mc-btn.fire{
+    background:#2a0000;
+    border-color:#ff4010;
+    color:#ff6010;
+    font-size:clamp(12px,4.5vw,26px);
+  }
+  .mc-btn.fire:active,.mc-btn.fire.pressed{background:#ff2000;color:#fff;}
+  @media (pointer:coarse){
+    #mobileControls{display:block !important;}
+    .sub .mobile-hide{display:none;}
+  }
+  /* Also show on small screens */
+  @media (max-width:600px){
+    #mobileControls{display:block !important;}
+  }
 </style>
 </head>
 <body>
@@ -42,6 +90,63 @@
     <div class="sub" style="margin-top:12px">P1(GREEN): A/D or ←→ MOVE &nbsp; W or ↑=FIRE<br>P2(BLUE): ←→ MOVE &nbsp; ↑=FIRE<br>MOBILE: DRAG=MOVE &nbsp; TAP=FIRE</div>
   </div>
 </div>
+
+<!-- Mobile Controls -->
+<div id="mobileControls">
+  <div class="mc-row" id="mcRow1p">
+    <!-- 1P layout: LEFT | FIRE | RIGHT -->
+    <div class="mc-player" style="justify-content:space-between;width:100%;gap:8px;">
+      <button class="mc-btn" id="mc1Left"  style="width:22%;aspect-ratio:1" ontouchstart="mcPress('1L')" ontouchend="mcRelease('1L')">◀</button>
+      <button class="mc-btn fire" id="mc1Fire" style="width:30%;aspect-ratio:1;font-size:clamp(14px,5vw,28px)" ontouchstart="mcPress('1F')" ontouchend="mcRelease('1F')">🔥</button>
+      <button class="mc-btn" id="mc1Right" style="width:22%;aspect-ratio:1" ontouchstart="mcPress('1R')" ontouchend="mcRelease('1R')">▶</button>
+    </div>
+  </div>
+  <div class="mc-row" id="mcRow2p" style="display:none;gap:12px;">
+    <!-- 2P layout: P1 controls | divider | P2 controls -->
+    <div class="mc-player" style="flex:1;gap:5px;justify-content:flex-start;">
+      <span class="mc-label" style="color:#40ff80">P1</span>
+      <button class="mc-btn" id="mc2p1Left"  style="flex:1;aspect-ratio:1;" ontouchstart="mcPress('1L')" ontouchend="mcRelease('1L')">◀</button>
+      <button class="mc-btn fire" id="mc2p1Fire" style="flex:1.4;aspect-ratio:1;" ontouchstart="mcPress('1F')" ontouchend="mcRelease('1F')">🔥</button>
+      <button class="mc-btn" id="mc2p1Right" style="flex:1;aspect-ratio:1;" ontouchstart="mcPress('1R')" ontouchend="mcRelease('1R')">▶</button>
+    </div>
+    <div style="width:2px;background:#c83000;align-self:stretch;opacity:0.4;"></div>
+    <div class="mc-player p2" style="flex:1;gap:5px;justify-content:flex-end;">
+      <button class="mc-btn" id="mc2p2Right" style="flex:1;aspect-ratio:1;" ontouchstart="mcPress('2R')" ontouchend="mcRelease('2R')">▶</button>
+      <button class="mc-btn fire" id="mc2p2Fire" style="flex:1.4;aspect-ratio:1;" ontouchstart="mcPress('2F')" ontouchend="mcRelease('2F')">🔥</button>
+      <button class="mc-btn" id="mc2p2Left"  style="flex:1;aspect-ratio:1;" ontouchstart="mcPress('2L')" ontouchend="mcRelease('2L')">◀</button>
+      <span class="mc-label" style="color:#40d0ff">P2</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── MOBILE BUTTON STATE ──────────────────────────────
+const mcState={p1Left:false,p1Right:false,p1Fire:false,p2Left:false,p2Right:false,p2Fire:false};
+const mcFireCooldown={p1:0,p2:0};
+
+function mcPress(btn){
+  if(btn==='1L') mcState.p1Left=true;
+  else if(btn==='1R') mcState.p1Right=true;
+  else if(btn==='1F'){mcState.p1Fire=true;}
+  else if(btn==='2L') mcState.p2Left=true;
+  else if(btn==='2R') mcState.p2Right=true;
+  else if(btn==='2F'){mcState.p2Fire=true;}
+}
+function mcRelease(btn){
+  if(btn==='1L') mcState.p1Left=false;
+  else if(btn==='1R') mcState.p1Right=false;
+  else if(btn==='1F') mcState.p1Fire=false;
+  else if(btn==='2L') mcState.p2Left=false;
+  else if(btn==='2R') mcState.p2Right=false;
+  else if(btn==='2F') mcState.p2Fire=false;
+}
+
+function updateMobileLayout(np){
+  document.getElementById('mcRow1p').style.display=np===1?'flex':'none';
+  document.getElementById('mcRow2p').style.display=np===2?'flex':'none';
+}
+</script>
+
 <script>
 const canvas=document.getElementById('gc');
 const ctx=canvas.getContext('2d');
@@ -531,9 +636,13 @@ function loop(){
       if(!pl.dead){
         // P1 (id===0) accepts WASD OR arrow keys in 1-player mode
         const isP1solo = pl.id===0 && numPlayers===1;
-        const goLeft  = keys[pl.leftKey]  || (isP1solo && keys['ArrowLeft']);
-        const goRight = keys[pl.rightKey] || (isP1solo && keys['ArrowRight']);
-        const goShoot = keys[pl.shootKey] || (isP1solo && keys['ArrowUp']);
+        const isMC1 = pl.id===0;
+        const mcL = isMC1 ? mcState.p1Left  : mcState.p2Left;
+        const mcR = isMC1 ? mcState.p1Right : mcState.p2Right;
+        const mcF = isMC1 ? mcState.p1Fire  : mcState.p2Fire;
+        const goLeft  = keys[pl.leftKey]  || (isP1solo && keys['ArrowLeft'])  || mcL;
+        const goRight = keys[pl.rightKey] || (isP1solo && keys['ArrowRight']) || mcR;
+        const goShoot = keys[pl.shootKey] || (isP1solo && keys['ArrowUp'])    || mcF;
         if(goLeft)  pl.x=Math.max(0,pl.x-4);
         if(goRight) pl.x=Math.min(W-36,pl.x+4);
         if(pl.cooldown>0)pl.cooldown--;
@@ -759,8 +868,7 @@ document.addEventListener('keydown',e=>{
   if(e.code==='Space'||e.code==='KeyW'||e.code==='ArrowUp'||e.code==='ArrowLeft'||e.code==='ArrowRight') e.preventDefault();
 });
 document.addEventListener('keyup',e=>{keys[e.code]=false;});
-canvas.addEventListener('touchstart',e=>{e.preventDefault();if(state==='running'){const p1=players&&players.find(p=>p.id===0);if(p1)playerShoot(p1);}},{passive:false});
-canvas.addEventListener('touchmove',e=>{e.preventDefault();const rect=canvas.getBoundingClientRect();const tx=(e.touches[0].clientX-rect.left)/rect.width*W;const p1=players&&players.find(p=>p.id===0);if(p1)p1.x=Math.max(0,Math.min(W-36,tx-18));},{passive:false});
+// Touch controls replaced by on-screen buttons
 
 buildBG();requestAnimationFrame(loop);
 </script>
