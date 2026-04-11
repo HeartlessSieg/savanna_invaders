@@ -328,7 +328,7 @@ function initShields(){
       const cells=[];
       for(let r=0;r<5;r++) for(let c=0;c<9;c++){
         if(r>=3&&c>=3&&c<=5) continue;
-        cells.push({r,c,hp:Math.random()<0.35?2:1});
+        cells.push({r,c,hp:3,maxHp:3});
       }
       shields.push({x:sx,y:row.y,cells,cw:10,ch:7});
     });
@@ -541,8 +541,40 @@ function drawTank(pl){
 // ── SHIELD
 function drawShield(sh){
   sh.cells.forEach(cell=>{
-    const cx=sh.x+cell.c*sh.cw,cy=sh.y+cell.r*sh.ch;
-    px(cx,cy,sh.cw-1,sh.ch-1,cell.hp===2?COL.sh:COL.shL);
+    const cx=sh.x+cell.c*sh.cw, cy=sh.y+cell.r*sh.ch;
+    const maxHp=cell.maxHp||3;
+    const pct=cell.hp/maxHp; // 1.0=full, 0.33=one hit left
+    if(pct>=1){
+      // Full health — completely solid
+      ctx.globalAlpha=1;
+      px(cx,cy,sh.cw-1,sh.ch-1,COL.sh);
+      // Bright highlight on top edge
+      px(cx,cy,sh.cw-1,2,'rgba(255,180,80,0.55)');
+    } else if(pct>=0.6){
+      // 2 hp — slightly faded, some cracks
+      ctx.globalAlpha=0.72;
+      px(cx,cy,sh.cw-1,sh.ch-1,COL.sh);
+      ctx.globalAlpha=0.5;
+      px(cx,cy,sh.cw-1,2,COL.shM);
+      // Crack marks
+      ctx.globalAlpha=0.45;
+      ctx.fillStyle='#000';
+      ctx.fillRect(cx+3,cy+2,1,sh.ch-3);
+      ctx.fillRect(cx+6,cy+1,1,sh.ch-2);
+    } else {
+      // 1 hp — very faded / crumbling
+      ctx.globalAlpha=0.35;
+      px(cx,cy,sh.cw-1,sh.ch-1,COL.shM);
+      ctx.globalAlpha=0.22;
+      px(cx,cy,sh.cw-1,2,COL.sh);
+      // Heavy cracks
+      ctx.globalAlpha=0.4;
+      ctx.fillStyle='#000';
+      ctx.fillRect(cx+2,cy+1,1,sh.ch-1);
+      ctx.fillRect(cx+5,cy+2,1,sh.ch-2);
+      ctx.fillRect(cx+7,cy+1,2,2);
+    }
+    ctx.globalAlpha=1;
   });
 }
 
