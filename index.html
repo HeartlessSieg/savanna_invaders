@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAVANNA INVADERS</title>
+<title>SAVANNAH STAMPEDE</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -75,13 +75,13 @@
 <body>
 <div id="hud">
   <span>P1:<b id="s1">0</b></span>
-  <span>SAVANNA INVADERS &nbsp;|&nbsp; HI:<b id="hiVal">0</b> &nbsp; W:<b id="waveVal">1</b></span>
+  <span>SAVANNAH STAMPEDE &nbsp;|&nbsp; HI:<b id="hiVal">0</b> &nbsp; W:<b id="waveVal">1</b></span>
   <span>P2:<b id="s2">—</b></span>
 </div>
 <div id="gameWrapper">
   <canvas id="gc" width="840" height="720"></canvas>
   <div id="overlay">
-    <h1>SAVANNA<br>INVADERS</h1>
+    <h1>SAVANNAH<br>STAMPEDE</h1>
     <div class="sub">MUTANT ANIMALS INVADE THE SAVANNA!<br>DEFEND YOUR TERRITORY</div>
     <div class="btnrow">
       <button class="btn" onclick="startGame(1)">▶ 1 PLAYER</button>
@@ -649,7 +649,7 @@ function gameOver(win){
 }
 
 function showStart(){
-  showOverlay(`<h1>SAVANNA<br>INVADERS</h1>
+  showOverlay(`<h1>SAVANNAH<br>STAMPEDE</h1>
     <div class="sub">MUTANT ANIMALS INVADE!</div>
     <div class="btnrow"><button class="btn" onclick="startGame(1)">▶ 1 PLAYER</button><button class="btn p2" onclick="startGame(2)">▶▶ 2 PLAYERS</button></div>
     <div class="sub" style="margin-top:12px">P1(GREEN):A/D or ←→ MOVE &nbsp; W or ↑=FIRE<br>P2(BLUE):←→ MOVE &nbsp; ↑=FIRE</div>`);
